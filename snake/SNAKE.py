@@ -28,6 +28,7 @@ LEFT = 24
 RIGHT = 26
 CLEAR = 45
 ENTER = 105
+SCND = 21
 
 # Direction vectors
 DIRECTIONS = {
@@ -61,10 +62,13 @@ def draw_score(score):
     r, g, b = BG_COLOR
     ti_draw.set_color(r, g, b)
     ti_draw.fill_rect(0, 0, SCREEN_WIDTH, SCORE_H)
+    r, g, b = SNAKE_COLOR
+    ti_draw.set_color(r, g, b)
+    ti_draw.draw_text(5, SCORE_H, "Snake")
     r, g, b = TEXT_COLOR
     ti_draw.set_color(r, g, b)
     score_text = "Score: " + str(score)
-    x = SCREEN_WIDTH - len(score_text) * CHAR_W - 5 # Padding 5 pixels
+    x = SCREEN_WIDTH - len(score_text) * CHAR_W - 5
     ti_draw.draw_text(x, SCORE_H, score_text)
 
 def draw_border():
@@ -91,7 +95,7 @@ def show_game_over(score):
     cx = SCREEN_WIDTH // 2
     cy = SCREEN_HEIGHT // 2
     game_over_text = "GAME OVER"
-    end_text = "[ENTER] / [CLEAR]"
+    end_text = "[enter] / [clear]"
     score_text = "Score: " + str(score)
     r, g, b = APPLE_COLOR
     ti_draw.set_color(r, g, b)
@@ -113,6 +117,7 @@ def run_game():
     snake = [(start_col, start_row)]
     direction = RIGHT
     score = 0
+    paused = False
 
     apple = place_apple(snake)
     draw_cell(apple[0], apple[1], APPLE_COLOR)
@@ -125,6 +130,12 @@ def run_game():
 
         if key == CLEAR:
             return False  # quit
+
+        if key == SCND:
+            paused = not paused
+
+        if paused:
+            continue
 
         if key in DIRECTIONS and key != OPPOSITES[direction]:
             direction = key
