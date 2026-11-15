@@ -1,37 +1,8 @@
 # TI-84 Evo Projects
 
-A collection of games and tools for the **TI-84 Evo** calculator
-
----
+A collection of games and tools for the **TI-84 Evo** calculator.
 
 ## Projects
-
-### Blackjack
-
-> `Blackjack/BLCKJACK.py`
-
-A fully-featured Blackjack game. Cards are rendered with hand-drawn suits (spades, hearts, diamonds, clubs) using `ti_draw` polygons and a compact sprite system.
-
-![Blackjack screenshot](Screenshots/blackjack1.png)![Backjack screenshot2](Screenshots/blackjack2.png)
-
-**Controls**
-
-| Key | Action |
-|-----|--------|
-| F1  | MAX bet / CLEAR bet |
-| F2  | +5 |
-| F3  | +20 |
-| F4  | +100 / HIT |
-| F5  | DEAL / STAY |
-| CLEAR | Quit |
-
-**Features**
-- Betting screen with balance tracking (starts at $500)
-- Dealer hides second card until player stays
-- Dealer draws to soft 17
-- 5-Card Trick: collect 5 cards without busting to auto-win
-
----
 
 ### Snake
 
@@ -41,14 +12,21 @@ Classic Snake game. Navigate the snake to eat apples without hitting the walls o
 
 ![Snake screenshot](Screenshots/snake.png)
 
-**Controls**
+---
 
-| Key | Action |
-|-----|--------|
-| Arrow keys | Change direction |
-| 2nd | Pause / Resume |
-| Enter | Restart after game over |
-| CLEAR | Quit |
+### Blackjack
+
+> `Blackjack/BLCKJACK.py`
+
+A fully-featured Blackjack game. Cards are rendered with hand-drawn suits (spades, hearts, diamonds, clubs) using `ti_draw` polygons and a compact sprite system.
+
+![Blackjack screenshot](Screenshots/blackjack1.png)  ![Backjack screenshot2](Screenshots/blackjack2.png)
+
+**Features**
+- Betting screen with balance tracking (starts at $500)
+- Dealer hides second card until player stays
+- Dealer draws to soft 17
+- 5-Card Trick: collect 5 cards without busting to auto-win
 
 ---
 
