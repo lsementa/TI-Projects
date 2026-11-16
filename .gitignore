@@ -1,4 +1,4 @@
-input/*
-!input/.gitkeep
-output/*
-!output/.gitkeep
+PNG2Sprite/input/*
+!PNG2Sprite/input/.gitkeep
+PNG2Sprite/output/*
+!PNG2Sprite/output/.gitkeep

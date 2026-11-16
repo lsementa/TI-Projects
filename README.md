@@ -30,6 +30,22 @@ A fully-featured Blackjack game. Cards are rendered with hand-drawn suits (spade
 
 ---
 
+### Breakout
+
+> `Breakout/BREAKOUT.py`
+
+Classic brick-breaker. Move the paddle left and right to bounce the ball and clear every brick on the board.
+
+![Breakout screenshot](Screenshots/breakout.png)
+
+**Features**
+- 5 rows of colored bricks worth 1–5 points
+- Paddle with momentum; where the ball hits the paddle controls its bounce angle
+- 6 rotating brick patterns, with the ball speeding up each level
+- Pause support
+
+---
+
 ### PNG2Sprite
 
 > `PNG2Sprite/png_to_sprite.py`
