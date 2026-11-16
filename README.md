@@ -50,7 +50,7 @@ Classic brick-breaker. Move the paddle left and right to bounce the ball and cle
 
 > `PNG2Sprite/png_to_sprite.py`
 
-A desktop Python utility that converts PNG images into sprite data compatible with the TI-84 `ti_draw` API.
+A desktop Python utility that converts PNG images into either .8xv2 files or sprite data compatible with the TI-84 `ti_draw` API.
 
 **Requirements:** `Pillow`
 

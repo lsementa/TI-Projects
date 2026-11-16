@@ -12,6 +12,24 @@ SCALE = 50         # percent to resize every input image by (50 = half size)
 SMOOTH_SCALE = False  # False = nearest neighbor (crisp pixel art, fewer colors)
                       # True  = smooth/averaged (better for photos, more rects)
 
+# Low-rect mode. Every fill_rect costs ~8 ms on the calculator no matter how
+# big it is, so for moving game sprites it is worth trading a little detail
+# for far fewer rectangles.
+MAX_RECTS = 0         # 0 = exact cover. N > 0 = approximate the sprite's
+                      # silhouette with at most N rectangles (other colors such
+                      # as eyes stay exact and are drawn on top).
+                      # command line: --max-rects 8
+APPROX_PENALTY = 2.5  # how strongly approximation avoids painting outside the
+                      # shape (higher = tighter fit, may miss thin parts)
+FILL_HOLES = False    # fill transparent holes inside the shape (turns an
+                      # outline into a solid silhouette). command line: --fill
+
+# Output type
+MAKE_8XV2 = True     # False = one sprites.py with every palette and sprite
+                      # True  = a NAME.8xv2 calculator image per PNG, drawn with
+                      #         ti_graphics.drawImage("NAME", x, y). File names
+                      #         must be 8 characters max. command line: --8xv2
+
 
 def is_light(rgb):
     return min(rgb) >= HALO_LEVEL
@@ -124,6 +142,69 @@ def encode_sprites(grid, num_colors):
     return sprites
 
 
+def fill_holes(grid, width, height):
+    """Fill each row between its leftmost and rightmost pixel with the most
+    common color. Turns outlines into solid silhouettes, even when the outline
+    has small gaps (a flood fill would leak through those)."""
+    counts = {}
+    for c in grid.values():
+        counts[c] = counts.get(c, 0) + 1
+    fill = max(counts, key=counts.get)
+    filled = dict(grid)
+    for y in range(height):
+        row = [x for x in range(width) if (x, y) in grid]
+        if row:
+            for x in range(min(row), max(row) + 1):
+                if (x, y) not in filled:
+                    filled[(x, y)] = fill
+    return filled
+
+
+def approximate_rects(mask, max_rects, penalty):
+    """Greedy cover of `mask` (a set of (x, y)) with at most max_rects rects.
+
+    Each step adds the rectangle that paints the most still-uncovered shape
+    pixels minus `penalty` per background pixel it would paint. For each pair
+    of rows the best column range is found with a max-subarray scan.
+    """
+    xs = [p[0] for p in mask]
+    ys = [p[1] for p in mask]
+    x_min, y_min = min(xs), min(ys)
+    width = max(xs) - x_min + 1
+    height = max(ys) - y_min + 1
+    # value of painting each pixel: +1 uncovered shape, -penalty background
+    value = [[(1.0 if (x + x_min, y + y_min) in mask else -penalty)
+              for x in range(width)] for y in range(height)]
+    rectangles = []
+    while len(rectangles) < max_rects:
+        best = (0.5, None)
+        for y0 in range(height):
+            col = [0.0] * width
+            for y1 in range(y0, height):
+                row = value[y1]
+                for x in range(width):
+                    col[x] += row[x]
+                run, start = 0.0, 0
+                for x in range(width):
+                    if run <= 0:
+                        run, start = 0.0, x
+                    run += col[x]
+                    if run > best[0]:
+                        best = (run, (start, y0, x - start + 1, y1 - y0 + 1))
+        if best[1] is None:
+            break
+        x, y, w, h = best[1]
+        rectangles.append((x + x_min, y + y_min, w, h))
+        for yy in range(y, y + h):
+            for xx in range(x, x + w):
+                value[yy][xx] = 0.0      # already painted: no gain, no cost
+    return rectangles
+
+
+def encode_rect(x, y, w, h):
+    return ((x + 1) << 25) | ((y + 1) << 17) | (w << 8) | h
+
+
 def scale_image(img, percent):
     if percent == 100:
         return img
@@ -133,8 +214,122 @@ def scale_image(img, percent):
     return img.resize((w, h), resample)
 
 
-def convert_png(filename, scale=SCALE):
+# --- Calculator image files (.8xv2, "IM8C") ------------------------------------
+# One ti_graphics.drawImage("NAME", x, y) call draws a whole image natively,
+# about as fast as a single fill_rect. Format matches TI-Planet's img2calc
+# output byte for byte: a CBOR container around an RLE-compressed,
+# palette-indexed image, plus the Evo XOR checksum.
 
+def rgb565(c):
+    r, g, b = (c >> 16) & 255, (c >> 8) & 255, c & 255
+    return ((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3)
+
+
+def im8c_rle(pixels):
+    """0x80|(n-2), color = run of n (2..128); n-1, colors... = n literals."""
+    out = bytearray()
+    lit = []
+
+    def flush():
+        while lit:
+            chunk = lit[:128]
+            del lit[:128]
+            out.append(len(chunk) - 1)
+            out.extend(chunk)
+
+    i, n = 0, len(pixels)
+    while i < n:
+        j = i
+        while j < n and pixels[j] == pixels[i] and j - i < 128:
+            j += 1
+        if j - i >= 2:
+            flush()
+            out.append(0x80 | (j - i - 2))
+            out.append(pixels[i])
+            i = j
+        else:
+            lit.append(pixels[i])
+            i += 1
+    flush()
+    return bytes(out)
+
+
+def _cbor_head(major, n):
+    if n < 24:
+        return bytes([(major << 5) | n])
+    if n < 256:
+        return bytes([(major << 5) | 24, n])
+    return bytes([(major << 5) | 25, n >> 8, n & 255])
+
+
+def _cbor_text(s):
+    return _cbor_head(3, len(s)) + s.encode()
+
+
+def _cbor_bytes(b):
+    return _cbor_head(2, len(b)) + b
+
+
+def _var_name(name):
+    out = bytearray()
+    for ch in name:
+        if "A" <= ch <= "Z":
+            w = 0xE800 + ord(ch) - 65
+        elif "0" <= ch <= "9":
+            w = 0xE401 + ord(ch) - 48
+        else:
+            raise ValueError(f"image name {name!r}: only A-Z and 0-9 allowed")
+        out += bytes([w & 255, w >> 8])
+    return bytes(out) + b"\0\0"
+
+
+def evo_checksum(body):
+    adjusted = len(body) - 3
+    words = adjusted >> 1
+    if adjusted & 1 and words > 0:
+        words -= 1
+    c = 0
+    for i in range(words):
+        c ^= body[2 * i] | (body[2 * i + 1] << 8)
+    return c & 0xFFFF
+
+
+def im8c_file(name, width, height, palette, pixels, transparent=False):
+    """Bytes of a NAME.8xv2 image var.
+
+    palette: 24-bit RGB ints (stored as RGB565); pixels: palette indexes,
+    row by row. transparent=True makes palette index 0 transparent.
+    """
+    if len(name) > 8:
+        raise ValueError(f"image name {name!r} is longer than 8 characters")
+    assert len(pixels) == width * height
+    img = b"IM8C" + b"".join(
+        v.to_bytes(2, "little")
+        for v in (2, width, height, 1 if transparent else 0, len(palette)))
+    img += b"".join(rgb565(c).to_bytes(2, "little") for c in palette)
+    img += im8c_rle(pixels)
+    data = len(img).to_bytes(2, "little") + img
+    body = (b"\xbf" + _cbor_text("metaData") + b"\xbf"
+            + _cbor_text("type") + _cbor_head(0, 8)
+            + _cbor_text("version") + _cbor_head(0, 1)
+            + _cbor_text("flags") + _cbor_head(0, 1)
+            + _cbor_text("name") + _cbor_bytes(_var_name(name)) + b"\xff"
+            + _cbor_text("version") + _cbor_head(0, 1)
+            + _cbor_text("size") + _cbor_head(0, len(data))
+            + _cbor_text("data") + _cbor_bytes(data) + b"\xff")
+    return body + evo_checksum(body).to_bytes(2, "big")
+
+
+def grid_to_image(width, height, palette, grid):
+    """Transparent background: index 0 = transparent, sprite colors after."""
+    pixels = [0 if (x, y) not in grid else grid[(x, y)] + 1
+              for y in range(height) for x in range(width)]
+    return [0] + list(palette), pixels
+
+
+def load_grid(filename, scale=SCALE):
+    """PNG -> (width, height, palette, grid) with grid {(x, y): color index}.
+    Colors are reduced and ordered most-pixels-first."""
     img = Image.open(filename).convert("RGBA")
     original_size = img.size
     img = scale_image(img, scale)
@@ -154,7 +349,19 @@ def convert_png(filename, scale=SCALE):
                 visible[(x, y)] = (r, g, b)
 
     if REMOVE_HALO:
-        visible = remove_halo(visible, width, height)
+        cleaned = remove_halo(visible, width, height)
+        if cleaned:
+            visible = cleaned
+        else:
+            # The whole image is light (e.g. a pale outline). Removing the
+            # "halo" would erase everything, so keep it as is.
+            print("  Halo removal skipped: image is entirely light colors")
+
+    if not visible:
+        sys.exit(f"{filename}: no visible pixels to convert")
+
+    if FILL_HOLES:
+        visible = fill_holes(visible, width, height)
 
     # Reduce colors using only visible pixels (transparent areas would
     # otherwise pull the palette toward the fill color).
@@ -179,7 +386,18 @@ def convert_png(filename, scale=SCALE):
     palette, grid = merge_colors(palette, grid, COLORS)
 
     palette, grid = order_colors(palette, grid)
+    return width, height, palette, grid
+
+
+def convert_png(filename, scale=SCALE):
+    width, height, palette, grid = load_grid(filename, scale)
     sprites = encode_sprites(grid, len(palette))
+
+    if MAX_RECTS > 0:
+        # Color 0 is drawn first and later colors paint over it, so color 0
+        # can cover the whole silhouette approximately.
+        rects = approximate_rects(set(grid), MAX_RECTS, APPROX_PENALTY)
+        sprites[0] = [0] + [encode_rect(*r) for r in rects]
 
     return width, height, palette, sprites
 
@@ -191,6 +409,29 @@ if __name__ == "__main__":
     script_dir = os.path.dirname(os.path.abspath(__file__))
     input_dir = os.path.join(script_dir, "input")
     output_dir = os.path.join(script_dir, "output")
+
+    # Flags: --max-rects N, --fill, --8xv2. Everything else is [scale] [files...]
+    IM8C = MAKE_8XV2
+    COMBINED_NAME = "sprites.py"   # all palettes and sprites go in this one file
+    args = []
+    argv = sys.argv[1:]
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a == "--max-rects":
+            if i + 1 >= len(argv) or not argv[i + 1].isdigit():
+                sys.exit("--max-rects needs a number, e.g. --max-rects 8")
+            MAX_RECTS = int(argv[i + 1])
+            i += 2
+            continue
+        if a == "--fill":
+            FILL_HOLES = True
+        elif a in ("--8xv2", "--im8c"):
+            IM8C = True     # write NAME.8xv2 images for ti_graphics.drawImage
+        else:
+            args.append(a)
+        i += 1
+    sys.argv = sys.argv[:1] + args
 
     scale = SCALE
     if len(sys.argv) > 1:
@@ -206,23 +447,60 @@ if __name__ == "__main__":
 
     png_files = [f for f in os.listdir(input_dir) if f.lower().endswith(".png")]
 
+    # Optional file names after the scale convert only those images:
+    #   python png_to_sprite.py 100 cloud.png
+    if len(sys.argv) > 2:
+        wanted = {os.path.basename(a).lower() for a in sys.argv[2:]}
+        png_files = [f for f in png_files if f.lower() in wanted]
+
+    png_files.sort(key=str.lower)
+
     if not png_files:
         print(f"No PNG files found in {input_dir}")
-    else:
+
+    elif IM8C:
+        # The file name becomes the calculator variable name, so check every
+        # name before converting anything: at most 8 characters, letters and
+        # digits only, starting with a letter.
+        bad = []
         for png_file in png_files:
-            input_path = os.path.join(input_dir, png_file)
-            base_name = os.path.splitext(png_file)[0]
-            output_path = os.path.join(output_dir, f"{base_name}_sprite_data.py")
+            base = os.path.splitext(png_file)[0]
+            if len(base) > 8:
+                bad.append(f"  {png_file}: {len(base)} characters (max 8)")
+            elif not (base.isascii() and base.isalnum() and base[0].isalpha()):
+                bad.append(f"  {png_file}: use only letters and digits, "
+                           "starting with a letter")
+        if bad:
+            sys.exit("Rename these files before converting to .8xv2:\n" + "\n".join(bad))
 
-            width, height, palette, sprites = convert_png(input_path, scale)
+        for png_file in png_files:
+            name = os.path.splitext(png_file)[0].upper()
+            w, h, pal, grid = load_grid(os.path.join(input_dir, png_file), scale)
+            pal, pixels = grid_to_image(w, h, pal, grid)
+            with open(os.path.join(output_dir, name + ".8xv2"), "wb") as f:
+                f.write(im8c_file(name, w, h, pal, pixels, transparent=True))
+            print(f"Converted: {png_file} -> {name}.8xv2  ({w} x {h})")
+        print(f"Saved {len(png_files)} image(s) to {output_dir}")
+        print('On the calculator: from ti_graphics import drawImage; '
+              'drawImage("NAME", x, y)')
 
-            with open(output_path, "w") as f:
-                f.write(f"{base_name}_palette = " + repr(palette) + "\n\n")
-                f.write(f"{base_name}_sprites = " + repr(sprites) + "\n")
-
-            print(f"Converted: {png_file}")
-            print(f"  Dimensions: {width} x {height}")
-            print(f"  Colors: {len(palette)}")
-            print(f"  Rectangles: {sum(len(v) - 1 for v in sprites.values())}")
-            print(f"  Palette: {[hex(c) for c in palette]}")
-            print(f"  Saved to: {output_path}")
+    else:
+        # One Python file with every image's palette and sprites.
+        lines = ["# Generated by png_to_sprite.py (scale %g%%)\n" % scale]
+        for png_file in png_files:
+            base = os.path.splitext(png_file)[0]
+            ident = "".join(ch if ch.isalnum() else "_" for ch in base)
+            if ident[0].isdigit():
+                ident = "_" + ident
+            width, height, palette, sprites = convert_png(
+                os.path.join(input_dir, png_file), scale)
+            lines.append(f"\n# {png_file}: {width} x {height}\n")
+            lines.append(f"{ident}_palette = {palette!r}\n")
+            lines.append(f"{ident}_sprites = {sprites!r}\n")
+            print(f"Converted: {png_file}  ({width} x {height}, "
+                  f"{len(palette)} colors, "
+                  f"{sum(len(v) - 1 for v in sprites.values())} rectangles)")
+        output_path = os.path.join(output_dir, COMBINED_NAME)
+        with open(output_path, "w") as f:
+            f.writelines(lines)
+        print(f"Saved {len(png_files)} image(s) to {output_path}")
