@@ -4,7 +4,7 @@ import sys
 
 MAX_WIDTH = 400
 MAX_HEIGHT = 400
-COLORS = 3          # fewer colors = far fewer rectangles = faster drawing
+COLORS = 1          # fewer colors = far fewer rectangles = faster drawing
 REMOVE_HALO = True  # drop near-white anti-alias fringe touching the outside
 HALO_LEVEL = 200    # a pixel is "near-white" if R, G and B are all >= this
 SCALE = 100         # percent to resize every input image by (50 = half size)

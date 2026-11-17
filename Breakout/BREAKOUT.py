@@ -52,8 +52,9 @@ CHAR_W = 10
 PAD_W     = 6 * SQ      # 36 px
 PAD_H     = SQ          # 6 px
 PAD_MAX   = 25          # max velocity px/frame
-PAD_ACCEL = 6           # velocity gained per frame when holding
-PAD_FRIC  = 0.75         # velocity multiplier each frame on release
+PAD_ACCEL = 4           # velocity gained per frame when holding
+PAD_FRIC  = 0.4         # velocity multiplier each frame on release
+PAD_TAP_MAX = 4         # speed cap before key-repeat confirms a real hold
 PAD_WING  = PAD_MAX + 2 # 14 px black erasure strips
 
 # Ball
@@ -63,7 +64,11 @@ BALL_SZ     = 6
 
 # Timing
 DT       = 0.04
-HOLD_EXT = 0.04
+# get_key() only sees a held key through OS auto-repeat: one press, then a
+# pause before repeats start. FIRST_HOLD bridges that pause so the paddle
+# keeps moving; REPEAT_HOLD bridges the gaps between repeats.
+FIRST_HOLD  = 0.45
+REPEAT_HOLD = 0.10
 
 N_PATTERNS = 6
 
@@ -180,6 +185,7 @@ def run_game():
     paused   = False
     key_held = 0
     key_time = 0.0
+    key_rep  = False   # True once auto-repeat confirms the key is held
     prev_raw = 0
 
     clear_all()
@@ -202,10 +208,21 @@ def run_game():
         prev_raw = raw
 
         if raw == K_LEFT or raw == K_RIGHT:
-            key_held = raw
-            key_time = now + HOLD_EXT
-        elif now >= key_time:
+            if raw == key_held:
+                # Same key again while still "held": auto-repeat is running
+                key_rep  = True
+                key_time = now + REPEAT_HOLD
+            else:
+                # Fresh press or direction change: respond now, bridge the
+                # OS repeat delay, and kill momentum in the old direction
+                if (raw == K_LEFT and pad_vx > 0) or (raw == K_RIGHT and pad_vx < 0):
+                    pad_vx = 0.0
+                key_held = raw
+                key_rep  = False
+                key_time = now + FIRST_HOLD
+        elif key_held and now >= key_time:
             key_held = 0
+            key_rep  = False
 
         if paused:
             continue
@@ -215,10 +232,11 @@ def run_game():
         tick = now
 
         # Paddle momentum: accelerate while held, friction on release
+        vmax = PAD_MAX if key_rep else PAD_TAP_MAX
         if key_held == K_LEFT:
-            pad_vx = max(-PAD_MAX, pad_vx - PAD_ACCEL)
+            pad_vx = max(-vmax, pad_vx - PAD_ACCEL)
         elif key_held == K_RIGHT:
-            pad_vx = min(PAD_MAX, pad_vx + PAD_ACCEL)
+            pad_vx = min(vmax, pad_vx + PAD_ACCEL)
         else:
             pad_vx *= PAD_FRIC
             if abs(pad_vx) < 0.5:
