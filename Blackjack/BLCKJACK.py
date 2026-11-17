@@ -33,12 +33,27 @@ STARTING_BALANCE = 500
 _menu = ["", "", "", "", ""]
 
 card_palette = [16777215, 16645629, 0]
-
 card_sprs = {0: [0, 100936449, 1543897345, 67513089, 67644729, 108669697], 1: [1, 1510342913], 2: [2, 100805377, 67371265, 1543766273, 33947962, 1577451834, 75104513, 1551499521, 108800769]}
 
 card_back_palette = [16777215, 16645629, 15791094, 13294563, 91542, 0]
-
 card_back_sprs = {0: [0, 100936449, 1543897345, 67513089, 67644673, 1409942785, 67765249, 1477182260, 67896116, 1416889601, 74712321, 74853634, 108669697], 1: [1, 1510342913], 2: [2, 201982209], 3: [3, 303177774], 4: [4, 235545345, 168568579, 168952878, 1376912174, 174991107, 242492161], 5: [5, 100805377, 67371265, 1543766273, 33947962, 1577451834, 75104513, 1551499521, 108800769]}
+
+# club.png: 25 x 25
+club_palette = [2301728]
+club_sprites = {0: [0, 402785299, 335808274, 302385425, 268962566, 638320899, 605290765, 202772489, 135795720, 102372871, 68949766, 840958210, 103287041, 438831873, 136972033, 438960645, 539625217, 204210945, 405537540, 640418305, 506331395, 372245762, 338822913]}
+
+# diamond.png: 25 x 25
+diamond_palette = [16646144]
+diamond_sprites = {0: [0, 436470040, 403047189, 369624339, 336332559, 302909709, 269486859, 236195079, 202772229, 169349379, 135926529]}
+
+# heart.png: 25 x 25
+heart_palette = [16646144]
+heart_sprites = {0: [0, 168166925, 537265933, 134744075, 503843082, 101321225, 470419977, 67901190, 437783553, 437914369, 404491010, 371067905, 203427841, 237112833, 270797825, 304482817, 338167809, 371852801, 405537538, 439353601]}
+
+# spade.png: 25 x 25
+spade_palette = [2301728]
+spade_sprites = {0: [0, 436470296, 403047185, 369624336, 336201487, 302778638, 269355789, 235932940, 202510091, 169087242, 135664393, 102241544, 807141637, 69080835, 136841217, 505939969, 170526209, 405406469, 539624961, 506331395, 372245762, 338822913]}
+
 
 # Card layout
 CARD_W       = 47
@@ -97,56 +112,6 @@ def draw_value(x, y, card_value, color=BLACK_SUITE):
     ti_graphics.setFont(1)
 
 
-def draw_diamond(x, y):
-    ti_draw.set_color(*RED_SUITE)
-    cx = x + 23
-    cy = y + 31
-    xs = [cx, cx + 7, cx, cx - 7, cx]
-    ys = [cy - 9, cy, cy + 9, cy, cy - 9]
-    ti_draw.fill_poly(xs, ys)
-
-
-def draw_heart(x, y):
-    ti_draw.set_color(*RED_SUITE)
-    cx = x + 23
-    cy = y + 31
-    # Flat bump tops (cx-6→cx-9 and mirror) look rounder on low-res screens;
-    # 4-segment lower curve gives a smooth path to the bottom point.
-    xs = [cx,    cx-3,  cx-6,  cx-9,  cx-11, cx-12, cx-11, cx-9,  cx-6,  cx-3,  cx,    cx+3,  cx+6,  cx+9,  cx+11, cx+12, cx+11, cx+9,  cx+6,  cx+3,  cx]
-    ys = [cy-5,  cy-9,  cy-11, cy-11, cy-8,  cy-4,  cy,    cy+4,  cy+7,  cy+9,  cy+11, cy+9,  cy+7,  cy+4,  cy,    cy-4,  cy-8,  cy-11, cy-11, cy-9,  cy-5]
-    ti_draw.fill_poly(xs, ys)
-
-
-def draw_club(x, y):
-    ti_draw.set_color(*BLACK_SUITE)
-    cx = x + 23
-    cy = y + 31
-    # Three lobes with radius 6 for visible overlap
-    ti_draw.fill_circle(cx,     cy - 6, 6)
-    ti_draw.fill_circle(cx - 6, cy + 2, 6)
-    ti_draw.fill_circle(cx + 6, cy + 2, 6)
-    # Solid rectangle to fill the gap between all three lobes
-    ti_draw.fill_rect(cx - 4, cy - 2, 9, 7)
-    # Narrow stem below
-    xs = [cx - 4, cx + 4, cx + 2, cx - 2]
-    ys = [cy + 7,  cy + 7, cy + 12, cy + 12]
-    ti_draw.fill_poly(xs, ys)
-
-
-def draw_spade(x, y):
-    ti_draw.set_color(*BLACK_SUITE)
-    cx = x + 23
-    cy = y + 31
-    # Exact y-mirror of the improved heart
-    xs = [cx,    cx-3,  cx-6,  cx-9,  cx-11, cx-12, cx-11, cx-9,  cx-6,  cx-3,  cx,    cx+3,  cx+6,  cx+9,  cx+11, cx+12, cx+11, cx+9,  cx+6,  cx+3,  cx]
-    ys = [cy+5,  cy+9,  cy+11, cy+11, cy+8,  cy+4,  cy,    cy-4,  cy-7,  cy-9,  cy-11, cy-9,  cy-7,  cy-4,  cy,    cy+4,  cy+8,  cy+11, cy+11, cy+9,  cy+5]
-    ti_draw.fill_poly(xs, ys)
-    # Stem sits in the notch between the bottom bumps
-    xs = [cx - 4, cx + 4, cx + 2, cx - 2]
-    ys = [cy + 10, cy + 10, cy + 15, cy + 15]
-    ti_draw.fill_poly(xs, ys)
-
-
 def rgb(color):
     return (
         (color >> 16) & 255,
@@ -173,6 +138,10 @@ def prepare_sprite(palette, sprs):
 
 _card      = prepare_sprite(card_palette, card_sprs)
 _card_back = prepare_sprite(card_back_palette, card_back_sprs)
+_club      = prepare_sprite(club_palette, club_sprites)
+_diamond   = prepare_sprite(diamond_palette, diamond_sprites)
+_heart     = prepare_sprite(heart_palette, heart_sprites)
+_spade     = prepare_sprite(spade_palette, spade_sprites)
 
 
 def draw_sprite(x, y, prepared):
@@ -181,6 +150,32 @@ def draw_sprite(x, y, prepared):
         ti_draw.set_color(*color)
         for px, py, w, h in rectangles:
             ti_draw.fill_rect(x + px - 2, y + py - 2, w + 1, h + 1)
+
+
+def sprite_center(prepared):
+    # Center point of the sprite's bounding box (in sprite-local coords)
+    min_x = min_y = 9999
+    max_x = max_y = -9999
+    for sprite_id in prepared:
+        for px, py, w, h in prepared[sprite_id][1]:
+            if px < min_x: min_x = px
+            if py < min_y: min_y = py
+            if px + w > max_x: max_x = px + w
+            if py + h > max_y: max_y = py + h
+    return ((min_x + max_x) // 2, (min_y + max_y) // 2)
+
+
+_card_cx, _card_cy = sprite_center(_card)
+# Offset to add to the card's (x, y) so each suit sprite lands centered on the card
+_suit_offsets = {}
+for _s in (_heart, _diamond, _club, _spade):
+    _sx, _sy = sprite_center(_s)
+    _suit_offsets[id(_s)] = (_card_cx - _sx, _card_cy - _sy)
+
+
+def draw_sprite_centered(x, y, prepared):
+    dx, dy = _suit_offsets[id(prepared)]
+    draw_sprite(x + dx, y + dy, prepared)
 
 
 def center_cards(user, num_cards):
@@ -198,13 +193,13 @@ def center_cards(user, num_cards):
 
 def _draw_suit(x, y, suit):
     if suit == 1:
-        draw_heart(x, y)
+        draw_sprite_centered(x, y, _heart)
     elif suit == 2:
-        draw_diamond(x, y)
+        draw_sprite_centered(x, y, _diamond)
     elif suit == 3:
-        draw_club(x, y)
+        draw_sprite_centered(x, y, _club)
     else:
-        draw_spade(x, y)
+        draw_sprite_centered(x, y, _spade)
 
 
 def draw_card(x, y, card_index):
@@ -222,9 +217,12 @@ def draw_card_back_at(x, y):
 
 def draw_hand(user, hand, count, hide_last=False):
     card_y = DEALER_Y if user == 1 else PLAYER_Y
-    ti_draw.set_color(*BG_COLOR)
-    ti_draw.fill_rect(0, card_y, SCREEN_WIDTH, CARD_H)
     cards = _dealer_cards if user == 1 else _player_cards
+    if count > 0:
+        x0 = cards[0][0] - 2
+        x1 = cards[count - 1][0] + CARD_W
+        ti_draw.set_color(*BG_COLOR)
+        ti_draw.fill_rect(x0, card_y - 2, x1 - x0, CARD_H + 2)
     for i in range(count):
         x, y = cards[i]
         if hide_last and i == count - 1:
@@ -452,14 +450,13 @@ def play_round(balance, bet):
         d_val = ""
         sts = update_status(sts, outcome)
 
-    set_menu_btn(3, "QUIT")
-    set_menu_btn(4, "PLAY")
+    set_menu(["QUIT", "", "", "", "PLAY"])
 
     while True:
         key = get_key(1)
         if key == GRPH:
             return balance, False
-        if key == TRCE or key == CLEAR_KEY:
+        if key == YEQ or key == CLEAR_KEY:
             return balance, True
 
 
@@ -503,7 +500,7 @@ def run_game():
 
             if balance <= 0:
                 draw_bg()
-                set_menu(["", "", "", "QUIT", "PLAY"])
+                set_menu(["QUIT", "", "", "", "PLAY"])
 
                 end_text = "GAME OVER"
                 x = max(0, (SCREEN_WIDTH - len(end_text) * CHAR_W) // 2)
@@ -511,9 +508,9 @@ def run_game():
 
                 while True:
                     key = get_key(1)
-                    if key == GRPH or key == TRCE or key == CLEAR_KEY:
+                    if key == GRPH or key == YEQ or key == CLEAR_KEY:
                         break
-                if key == TRCE or key == CLEAR_KEY:
+                if key == YEQ or key == CLEAR_KEY:
                     break
                 balance = STARTING_BALANCE
                 bet     = 0

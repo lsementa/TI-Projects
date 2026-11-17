@@ -7,7 +7,7 @@ MAX_HEIGHT = 400
 COLORS = 3          # fewer colors = far fewer rectangles = faster drawing
 REMOVE_HALO = True  # drop near-white anti-alias fringe touching the outside
 HALO_LEVEL = 200    # a pixel is "near-white" if R, G and B are all >= this
-SCALE = 50         # percent to resize every input image by (50 = half size)
+SCALE = 100         # percent to resize every input image by (50 = half size)
                     # override from the command line: python png_to_sprite.py 50
 SMOOTH_SCALE = False  # False = nearest neighbor (crisp pixel art, fewer colors)
                       # True  = smooth/averaged (better for photos, more rects)
@@ -25,7 +25,7 @@ FILL_HOLES = False    # fill transparent holes inside the shape (turns an
                       # outline into a solid silhouette). command line: --fill
 
 # Output type
-MAKE_8XV2 = True     # False = one sprites.py with every palette and sprite
+MAKE_8XV2 = False     # False = one sprites.py with every palette and sprite
                       # True  = a NAME.8xv2 calculator image per PNG, drawn with
                       #         ti_graphics.drawImage("NAME", x, y). File names
                       #         must be 8 characters max. command line: --8xv2
