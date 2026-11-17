@@ -18,7 +18,7 @@ Classic Snake game. Navigate the snake to eat apples without hitting the walls o
 
 > `Blackjack/BLCKJACK.py`
 
-A fully-featured Blackjack game. Cards are rendered with hand-drawn suits (spades, hearts, diamonds, clubs) using `ti_draw` polygons and a compact sprite system.
+A fully-featured Blackjack game.
 
 ![Blackjack screenshot](Screenshots/blackjack1.png)  ![Backjack screenshot2](Screenshots/blackjack2.png)
 
