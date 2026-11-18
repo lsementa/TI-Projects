@@ -35,8 +35,9 @@ _menu = ["", "", "", "", ""]
 card_palette = [16777215, 16645629, 0]
 card_sprites = {0: [0, 100936449, 1543897345, 67513089, 67644729, 108669697], 1: [1, 1510342913], 2: [2, 100805377, 67371265, 1543766273, 33947962, 1577451834, 75104513, 1551499521, 108800769]}
 
-card_back_palette = [16777215, 16645629, 15791094, 13294563, 91542, 0]
-card_back_sprites = {0: [0, 100936449, 1543897345, 67513089, 67644673, 1409942785, 67765249, 1477182260, 67896116, 1416889601, 74712321, 74853634, 108669697], 1: [1, 1510342913], 2: [2, 201982209], 3: [3, 303177774], 4: [4, 235545345, 168568579, 168952878, 1376912174, 174991107, 242492161], 5: [5, 100805377, 67371265, 1543766273, 33947962, 1577451834, 75104513, 1551499521, 108800769]}
+# back.png: 47 x 62
+back_palette = [929184, 16777215, 0]
+back_sprites = {0: [0, 134753337], 1: [1, 100936706, 67513857, 67633722, 1510474553, 142093313, 142224129], 2: [2, 100805377, 67371265, 1543766273, 33947962, 1577451834, 75104513, 1551499521, 108800769]}
 
 # club.png: 25 x 25
 club_palette = [2301728]
@@ -53,7 +54,6 @@ heart_sprites = {0: [0, 168166925, 537265933, 134744075, 503843082, 101321225, 4
 # spade.png: 25 x 25
 spade_palette = [2301728]
 spade_sprites = {0: [0, 436470296, 403047185, 369624336, 336201487, 302778638, 269355789, 235932940, 202510091, 169087242, 135664393, 102241544, 807141637, 69080835, 136841217, 505939969, 170526209, 405406469, 539624961, 506331395, 372245762, 338822913]}
-
 
 # Card layout
 CARD_W       = 47
@@ -108,7 +108,7 @@ def draw_value(x, y, card_value, color=BLACK_SUITE):
     ti_draw.draw_text(x + 3, y + 20, card_value)
     # bottom-right corner
     text_width = len(card_value) * 9
-    ti_draw.draw_text(x + 47 - text_width, y + 62, card_value)
+    ti_draw.draw_text(x + 44 - text_width, y + 62, card_value)
     ti_graphics.setFont(1)
 
 
@@ -137,7 +137,7 @@ def prepare_sprite(palette, sprs):
 
 
 _card      = prepare_sprite(card_palette, card_sprites)
-_card_back = prepare_sprite(card_back_palette, card_back_sprites)
+_back      = prepare_sprite(back_palette, back_sprites)
 _club      = prepare_sprite(club_palette, club_sprites)
 _diamond   = prepare_sprite(diamond_palette, diamond_sprites)
 _heart     = prepare_sprite(heart_palette, heart_sprites)
@@ -212,7 +212,7 @@ def draw_card(x, y, card_index):
 
 
 def draw_card_back_at(x, y):
-    draw_sprite(x, y, _card_back)
+    draw_sprite(x, y, _back)
 
 
 def draw_hand(user, hand, count, hide_last=False):
