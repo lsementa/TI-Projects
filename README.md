@@ -59,7 +59,7 @@ Classic Snake game. Navigate the snake to eat apples without hitting the walls o
 
 A fully-featured Blackjack game.
 
-![Blackjack screenshot](Screenshots/blackjack1.png)  ![Backjack screenshot2](Screenshots/blackjack2.png)
+![Blackjack screenshot](Screenshots/blackjack1.png) ![Backjack screenshot2](Screenshots/blackjack2.png) ![Backjack screenshot3](Screenshots/blackjack3.png)
 
 **Features**
 - Betting screen with balance tracking (starts at $500)

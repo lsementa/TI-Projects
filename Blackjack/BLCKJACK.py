@@ -39,6 +39,10 @@ card_sprites = {0: [0, 100936449, 1543897345, 67513089, 67644729, 108669697], 1:
 back_palette = [929184, 16777215, 0]
 back_sprites = {0: [0, 134753337], 1: [1, 100936706, 67513857, 67633722, 1510474553, 142093313, 142224129], 2: [2, 100805377, 67371265, 1543766273, 33947962, 1577451834, 75104513, 1551499521, 108800769]}
 
+# TI_Logo.png: 30 x 29
+TI_Logo_palette = [0]
+TI_Logo_sprites = {0: [0, 302122761, 671482626, 537657604, 571343107, 638452483, 772670979, 303302154, 638845445, 840172554, 605422340, 35130882, 806880776, 505020679, 773457926, 68947713, 740034821, 102632705, 605946372, 136317953, 572523267, 170003202, 706873858, 203819521, 774244097, 203948801, 438829570, 774374401, 506069253, 774505217, 472648194, 540018433, 540149251, 574096897, 641336321]}
+
 # club.png: 25 x 25
 club_palette = [2301728]
 club_sprites = {0: [0, 402785299, 335808274, 302385425, 268962566, 638320899, 605290765, 202772489, 135795720, 102372871, 68949766, 840958210, 103287041, 438831873, 136972033, 438960645, 539625217, 204210945, 405537540, 640418305, 506331395, 372245762, 338822913]}
@@ -138,6 +142,7 @@ def prepare_sprite(palette, sprs):
 
 _card      = prepare_sprite(card_palette, card_sprites)
 _back      = prepare_sprite(back_palette, back_sprites)
+_logo      = prepare_sprite(TI_Logo_palette, TI_Logo_sprites)
 _club      = prepare_sprite(club_palette, club_sprites)
 _diamond   = prepare_sprite(diamond_palette, diamond_sprites)
 _heart     = prepare_sprite(heart_palette, heart_sprites)
@@ -168,7 +173,7 @@ def sprite_center(prepared):
 _card_cx, _card_cy = sprite_center(_card)
 # Offset to add to the card's (x, y) so each suit sprite lands centered on the card
 _suit_offsets = {}
-for _s in (_heart, _diamond, _club, _spade):
+for _s in (_logo, _heart, _diamond, _club, _spade):
     _sx, _sy = sprite_center(_s)
     _suit_offsets[id(_s)] = (_card_cx - _sx, _card_cy - _sy)
 
@@ -213,6 +218,7 @@ def draw_card(x, y, card_index):
 
 def draw_card_back_at(x, y):
     draw_sprite(x, y, _back)
+    draw_sprite_centered(x, y, _logo)
 
 
 def draw_hand(user, hand, count, hide_last=False):
