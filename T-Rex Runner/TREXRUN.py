@@ -1,5 +1,6 @@
 import ti_draw
 import ti_graphics
+import ti_image
 import random
 import time
 from ti_system import *
@@ -39,7 +40,7 @@ JUMP_BUFFER = 0.25      # a jump pressed this long before landing still counts
 
 # Physics
 JUMP_V      = 200.0     # px/s
-GRAVITY     = 500.0     # px/s^2
+GRAVITY     = 450.0     # px/s^2
 FAST_FALL   = 1125.0    # gravity while holding [down] in the air
 START_SPEED = 100.0     # px/s
 MAX_SPEED   = 250.0
@@ -129,8 +130,8 @@ def IMG(e, x, y):
     _color[0] = None
 
 
-def px_rect(x, y, w, h):
-    # Fill exactly the pixels [x, x+w) x [y, y+h), clipped to the screen.
+def clip(x, y, w, h):
+    # (x, y, w, h) clipped to the screen, or None if nothing is left.
     if x < 0:
         w += x
         x = 0
@@ -142,12 +143,36 @@ def px_rect(x, y, w, h):
     if y + h > SCREEN_HEIGHT:
         h = SCREEN_HEIGHT - y
     if w > 0 and h > 0:
-        ti_draw.fill_rect(x - 1, y - 1, w + 1, h + 1)
+        return x, y, w, h
+    return None
+
+
+def px_rect(x, y, w, h):
+    # Fill exactly the pixels [x, x+w) x [y, y+h) in the current color.
+    r = clip(x, y, w, h)
+    if r:
+        ti_draw.fill_rect(r[0] - 1, r[1] - 1, r[2] + 1, r[3] + 1)
+
+
+def px_clear(x, y, w, h):
+    # Clear exactly the pixels [x, x+w) x [y, y+h) to the (white) background.
+    # clear_image includes both corners, hence w - 1 / h - 1. It rejects a
+    # 0 width or height, so 1-pixel-wide/tall areas (specks) use fill_rect.
+    # clear_image also resets the drawing color to black, so the color cache
+    # is invalidated.
+    r = clip(x, y, w, h)
+    if r:
+        if r[2] > 1 and r[3] > 1:
+            ti_image.clear_image(r[0], r[1], r[2] - 1, r[3] - 1)
+            _color[0] = None
+        else:
+            color(BG_COLOR)
+            ti_draw.fill_rect(r[0] - 1, r[1] - 1, r[2] + 1, r[3] + 1)
 
 
 def draw_bg():
-    color(BG_COLOR)
-    px_rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT)
+    ti_image.clear_image()
+    _color[0] = None
     color(FG_COLOR)
     px_rect(0, GROUND_Y, SCREEN_WIDTH, 1)
     SCORE_TXT[0] = SCORE_TXT[1] = None    # the clear wiped the HUD text too
@@ -174,8 +199,7 @@ def erase(b):
     # there except the jumping dino's padding, which repairs the line itself.
     y1 = min(b[3], GROUND_Y)
     if b[2] > b[0] and y1 > b[1]:
-        color(BG_COLOR)
-        px_rect(b[0], b[1], b[2] - b[0], y1 - b[1])
+        px_clear(b[0], b[1], b[2] - b[0], y1 - b[1])
 
 
 def erase_diff(old, new):
@@ -236,8 +260,7 @@ def draw_msg(lines):
 
 
 def erase_msg():
-    color(BG_COLOR)
-    px_rect(0, MSG_Y - 20, SCREEN_WIDTH, 76)
+    px_clear(0, MSG_Y - 20, SCREEN_WIDTH, 76)
 
 
 # --- Input ------------------------------------------------------------------
@@ -334,7 +357,7 @@ def new_speck(x):
 def draw_specks(specks, lo=0, hi=0, bottom=0):
     # Move the specks that changed pixel (and any under [lo, hi) down to
     # `bottom`, which the dino's padding just painted over). Erase pass
-    # first, then draw pass, so the color only switches once.
+    # first, then draw pass, so the color is only set once.
     redo = []
     for s in specks:
         old = s[3]
@@ -344,10 +367,9 @@ def draw_specks(specks, lo=0, hi=0, bottom=0):
         redo.append(s)
     if not redo:
         return
-    color(BG_COLOR)
     for s in redo:
         if s[3] is not None:
-            px_rect(s[3], s[1], s[2], 1)
+            px_clear(s[3], s[1], s[2], 1)
     color(FG_COLOR)
     for s in redo:
         x = int(s[0])
