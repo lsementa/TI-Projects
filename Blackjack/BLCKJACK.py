@@ -1,6 +1,7 @@
 import ti_draw
 import random
 import ti_graphics
+import ti_image
 from ti_system import *
 
 # Dimensions
@@ -35,13 +36,12 @@ _menu = ["", "", "", "", ""]
 card_palette = [16777215, 16645629, 0]
 card_sprites = {0: [0, 100936449, 1543897345, 67513089, 67644729, 108669697], 1: [1, 1510342913], 2: [2, 100805377, 67371265, 1543766273, 33947962, 1577451834, 75104513, 1551499521, 108800769]}
 
-# back.png: 47 x 62
-back_palette = [929184, 16777215, 0]
+back_palette = [3107777, 16777215, 0]
 back_sprites = {0: [0, 134753337], 1: [1, 100936706, 67513857, 67633722, 1510474553, 142093313, 142224129], 2: [2, 100805377, 67371265, 1543766273, 33947962, 1577451834, 75104513, 1551499521, 108800769]}
 
-# TI_Logo.png: 30 x 29
+# TI_Logo.png: 26 x 26
 TI_Logo_palette = [0]
-TI_Logo_sprites = {0: [0, 302122761, 671482626, 537657604, 571343107, 638452483, 772670979, 303302154, 638845445, 840172554, 605422340, 35130882, 806880776, 505020679, 773457926, 68947713, 740034821, 102632705, 605946372, 136317953, 572523267, 170003202, 706873858, 203819521, 774244097, 203948801, 438829570, 774374401, 506069253, 774505217, 472648194, 540018433, 540149251, 574096897, 641336321]}
+TI_Logo_sprites = {0: [0, 268568073, 604242179, 570819330, 470548994, 571212293, 671876355, 839778561, 470810881, 538051330, 705824009, 269747464, 34999298, 538313221, 437780742, 639109125, 68815873, 102501121, 505152258, 136186370, 505414145, 170002689, 673318401, 170132225, 371458561, 673448961, 405144066, 673579521, 472385281, 438961922, 472777986, 506594561, 540279809]}
 
 # club.png: 25 x 25
 club_palette = [2301728]
@@ -100,9 +100,16 @@ def hand_value(hand, count):
     return total
 
 
+def clear_bg(x, y, w, h):
+    if w > 2 and h > 2:
+        ti_image.clear_image(x + 1, y + 1, w - 2, h - 2, BG_COLOR)
+    elif w > 1 and h > 1:
+        ti_draw.set_color(*BG_COLOR)
+        ti_draw.fill_rect(x, y, w, h)
+
+
 def draw_bg():
-    ti_draw.set_color(*BG_COLOR)
-    ti_draw.fill_rect(-1, -1, SCREEN_WIDTH, SCREEN_HEIGHT - BUTTON_HEIGHT)
+    clear_bg(-1, -1, SCREEN_WIDTH, SCREEN_HEIGHT - BUTTON_HEIGHT)
 
 
 def draw_value(x, y, card_value, color=BLACK_SUITE):
@@ -227,8 +234,7 @@ def draw_hand(user, hand, count, hide_last=False):
     if count > 0:
         x0 = cards[0][0] - 2
         x1 = cards[count - 1][0] + CARD_W
-        ti_draw.set_color(*BG_COLOR)
-        ti_draw.fill_rect(x0, card_y - 2, x1 - x0, CARD_H + 2)
+        clear_bg(x0, card_y - 2, x1 - x0, CARD_H + 2)
     for i in range(count):
         x, y = cards[i]
         if hide_last and i == count - 1:
