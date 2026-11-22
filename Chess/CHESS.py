@@ -86,9 +86,8 @@ w_rook_palette = [16777215]
 w_rook_sprites = {0: [0, 134481160, 369362184, 101058055, 537264391, 303040514, 169085441, 202770437, 169478659, 102501890, 35918338, 69734401]}
 
 
-def draw_bg():
-    r, g, b = BG_COLOR
-    ti_draw.set_color(r, g, b)
+def draw_bg(color=BG_COLOR):
+    ti_draw.set_color(*color)
     ti_draw.fill_rect(-1, -1, SCREEN_WIDTH, SCREEN_HEIGHT)
 
 
@@ -631,6 +630,7 @@ def cpu_move(b, side, ep, cs, legal, level, seen):
 TEXT_COLOR  = (0, 0, 0)          # Black
 TITLE_COLOR   = (220, 0, 0)       # Red
 BRACKET_COLOR = TITLE_COLOR
+TITLE_BG      = BOARD_COLOR       # title screen background
 
 # Big title letters, 5 x 7 pixel grid, drawn TITLE_SCALE times bigger
 TITLE_SCALE = 6
@@ -704,7 +704,7 @@ def draw_brackets(options, i, color):
 
 
 def clear_menu():
-    ti_draw.set_color(*BG_COLOR)
+    ti_draw.set_color(*TITLE_BG)
     fill_box(0, HEAD_Y - 22, SCREEN_WIDTH, SCREEN_HEIGHT - HEAD_Y + 22)
 
 
@@ -729,7 +729,7 @@ def run_menu(heading, options, sel=0):
             new_sel += 1
 
         if new_sel != sel:
-            draw_brackets(options, sel, BG_COLOR)        # erase old brackets
+            draw_brackets(options, sel, TITLE_BG)        # erase old brackets
             sel = new_sel
             draw_brackets(options, sel, BRACKET_COLOR)   # draw new brackets
 
@@ -738,7 +738,7 @@ def title_screen():
     # Returns (level, color): level 0 = Easy, 1 = Normal, 2 = Hard and
     # color "w", "b", or "c" (CPU vs CPU: you just watch). Returns None if CLEAR is pressed on the first menu.
     # CLEAR on the color menu goes back to the difficulty menu.
-    draw_bg()
+    draw_bg(TITLE_BG)
     draw_big_text("Chess", TITLE_Y, TITLE_COLOR)
     while True:
         level = run_menu("Select difficulty:", MENU, 1)   # Normal picked
