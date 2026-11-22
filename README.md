@@ -43,6 +43,44 @@ python png_to_sprite.py --fill           # fill holes to make a solid silhouette
 
 ---
 
+---
+
+### Chess
+
+> `Chess/CHESS.py`
+
+Play chess against the calculator, or watch it play itself.
+
+![Chess screenshot](Screenshots/chess1.png) ![Chess screenshot2](Screenshots/chess2.png)
+
+**Features**
+- Three difficulty levels: Easy, Normal and Hard (the CPU looks 1, 2 or 3 moves ahead)
+- Play as White or Black (the board flips so your pieces are at the bottom), or pick Demo to watch CPU vs CPU
+- All the rules: castling, en passant and pawn promotion (always to a queen)
+- Detects check, checkmate and draws (stalemate, threefold repetition, the 50-move rule and insufficient material)
+- Undo on Easy and Normal
+- Score sheet at the end of the game listing every move in algebraic notation
+
+**Controls**
+- Arrow keys: move the cursor. Once a piece is selected, they jump between its legal squares
+- `[enter]`: select a piece, then move it
+- `[clear]`: unselect the piece
+- `[del]`: undo your last move (Easy and Normal only)
+- `[2nd]`: quit to the title screen
+- `[stat]`: show the score sheet after the game ends
+
+**Installation:** send `CHESS.py` to the calculator. The piece sprites are already built into the script; the PNGs in `Chess/images/` are the source images, converted with PNG2Sprite.
+
+---
+
+### Keyboard Codes
+
+> `Keyboard Codes/KEYCODES.py`
+
+A small tool that shows the code `ti_system.get_key()` returns for any key you press. Use it to look up key codes when writing your own programs. Press `[clear]` to quit.
+
+---
+
 ### Snake
 
 > `Snake/SNAKE.py`
@@ -101,4 +139,4 @@ My take on the famous Chrome Dinosaur Game. Jump over cacti and duck under ptero
 
 **Installation:** send `TREXRUN.py` and every `.8xv2` file in `T-Rex Runner/images/` to the calculator. The sprites were made with PNG2Sprite's `--8xv2` mode.
 
----
+

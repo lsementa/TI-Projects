@@ -2,14 +2,14 @@
 from PIL import Image
 import sys
 
-MAX_WIDTH = 400
-MAX_HEIGHT = 400
-COLORS = 1          # fewer colors = far fewer rectangles = faster drawing
+MAX_WIDTH = 4000
+MAX_HEIGHT = 4000
+COLORS = 2          # fewer colors = far fewer rectangles = faster drawing
 REMOVE_HALO = True  # drop near-white anti-alias fringe touching the outside
 HALO_LEVEL = 200    # a pixel is "near-white" if R, G and B are all >= this
-SCALE = 100         # percent to resize every input image by (50 = half size)
+SCALE = 16          # percent to resize every input image by (50 = half size)
                     # override from the command line: python png_to_sprite.py 50
-SMOOTH_SCALE = False  # False = nearest neighbor (crisp pixel art, fewer colors)
+SMOOTH_SCALE = False # False = nearest neighbor (crisp pixel art, fewer colors)
                       # True  = smooth/averaged (better for photos, more rects)
 
 # Low-rect mode. Every fill_rect costs ~8 ms on the calculator no matter how
