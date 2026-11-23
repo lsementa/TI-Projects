@@ -765,7 +765,7 @@ SMALL_CHAR_W = 8                  # small font: about 40 letters across 320 px
 SMALL_SHIFT = 16                  # nudge small text: minus = left, plus = right
 MOVE_LEN = 9                      # "W: e2, e4" - move lines are padded to this
 LINE_H = 22                       # space between normal lines in the box
-SMALL_H = 16                      # space between small-font lines
+SMALL_H = 17                      # space between small-font lines
 STATUS_Y = BOX_T + 25             # "Your move" / "Thinking" / "Checkmate"
 CHECK_Y = STATUS_Y + LINE_H       # "Check!" / "You win!"
 MOVES_Y = CHECK_Y + LINE_H + 10   # the two move lines (YOU / CPU)
@@ -774,6 +774,7 @@ HELP_HARD = ["", "[enter/clear]", "[2nd] Quit"]           # Hard: no undo
 HELP_WATCH = ["", "", "[2nd] Quit"]                       # CPU vs CPU
 HELP_END = ["", "[stat] Score", "[enter] Menu"]           # game over
 UNDO_LEVELS = (0, 1)              # undo only on Easy and Normal
+MAX_UNDO = 10                     # saved turns kept for undo (limits memory)
 HELP_Y = BOX_B - 8 - (len(HELP) - 1) * SMALL_H  # key help at the bottom
 ARROWS = {UP_KEY: (-1, 0), DOWN_KEY: (1, 0), LEFT_KEY: (0, -1), RIGHT_KEY: (0, 1)}
 flipped = False                   # True when you play black (board upside down)
@@ -1045,7 +1046,7 @@ LOG_H = 20                        # space between move lines
 LOG_ROWS = 7                      # move lines that fit on one page
 LOG_X = 10                        # left edge of the log text
 LOG_BOTTOM = LOG_Y + (LOG_ROWS - 1) * LOG_H + 8   # line under the last move
-LOG_HELP = "[up/down] Scroll   [clear/2nd] Menu"
+LOG_HELP = "[up/down] Scroll   [clear] Menu"
 LOG_COLS = (LOG_X, LOG_X + 45, LOG_X + 135)   # x of: number, white, black
 
 
@@ -1154,7 +1155,12 @@ def run_game(level, you):
         if undo_ok and side == you:
             # Save the state before seen/log are touched this turn, so
             # going back to it replays this turn exactly
-            history.append((b, ep, cs, clock, dict(seen), list(log)))
+            # The log only grows (and its last line may get "+"/"#"), so
+            # its length and last line are enough to put it back
+            history.append((b, ep, cs, clock, dict(seen), len(log),
+                            log[-1] if log else None))
+            if len(history) > MAX_UNDO:
+                history.pop(0)           # forget the oldest turn
         legal = legal_moves(b, side, ep, cs)
         check = in_check(b, side)
         key = position_key(b, side, ep, cs)
@@ -1207,7 +1213,10 @@ def run_game(level, you):
                 # Undo: take back the CPU's last move and your move
                 # before it (the log loses both too)
                 history.pop()            # this turn's state
-                ob, ep, cs, clock, seen, log = history.pop()
+                ob, ep, cs, clock, seen, n, last_line = history.pop()
+                del log[n:]
+                if n:
+                    log[-1] = last_line
                 for sq in range(64):
                     if ob[sq] != b[sq]:
                         redraw_square(ob, sq)
