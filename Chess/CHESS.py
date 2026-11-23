@@ -18,7 +18,7 @@ PIECE_H    = 20     # height of the piece sprites (bases line up)
 
 # Colors
 BG_COLOR = (255, 255, 255) # White
-BOARDER = (0, 0, 0) # Black
+BORDER = (0, 0, 0) # Black
 BOARD_COLOR   = (196, 164, 120) # Light color
 BOARD_TILE = (130, 92, 60)    # Dark color
 GRID_COLOR = BOARD_TILE         # Lines between squares
@@ -184,7 +184,7 @@ def draw_outer_border():
     # Black border around the whole board only
     left, top = BOARD_X, BOARD_Y
     right, bottom = BOARD_X + BOARD_SIZE, BOARD_Y + BOARD_SIZE
-    ti_draw.set_color(*BOARDER)
+    ti_draw.set_color(*BORDER)
     ti_draw.draw_line(left, top, right, top)
     ti_draw.draw_line(left, bottom, right, bottom)
     ti_draw.draw_line(left, top, left, bottom)
@@ -232,7 +232,7 @@ def hide_cursor(row, col):
     for line, outer in edges:
         if not outer:
             ti_draw.draw_line(*line)
-    ti_draw.set_color(*BOARDER)
+    ti_draw.set_color(*BORDER)
     for line, outer in edges:
         if outer:
             ti_draw.draw_line(*line)
@@ -628,9 +628,9 @@ def cpu_move(b, side, ep, cs, legal, level, seen):
 # ---------- Title screen ----------
 
 TEXT_COLOR  = (0, 0, 0)          # Black
-TITLE_COLOR   = (220, 0, 0)       # Red
+TITLE_COLOR   = TEXT_COLOR
 BRACKET_COLOR = TITLE_COLOR
-TITLE_BG      = BOARD_COLOR       # title screen background
+TITLE_BG      = BG_COLOR
 
 # Big title letters, 5 x 7 pixel grid, drawn TITLE_SCALE times bigger
 TITLE_SCALE = 6
@@ -641,12 +641,16 @@ TITLE_FONT = {
     "s": [".....", ".....", ".####", "#....", ".###.", "....#", "####."],
 }
 
-TITLE_Y   = 16                   # top of the big "Chess"
+TITLE_Y   = 16                  # top of the big "Chess"
+BAND_COLS = 8                   # checkered band behind the title
+BAND_ROWS = 2
+BAND_X    = (SCREEN_WIDTH - BAND_COLS * TILE_SIZE) // 2
+BAND_Y    = TITLE_Y - (BAND_ROWS * TILE_SIZE - 7 * TITLE_SCALE) // 2
 HEAD_Y    = 92                   # "Select difficulty:" / "Select your color:"
 MENU_Y    = 124                  # first menu option
 MENU_STEP = 24                   # space between lines
 MENU      = ["Easy", "Normal", "Hard"]
-COLORS    = ["White", "Black", "Demo"]
+COLORS    = ["White", "Black", "CPU Game"]
 
 _last_key = [0]
 
@@ -683,6 +687,17 @@ def draw_big_text(text, y, color):
                 else:
                     c += 1
         x += 6 * s
+
+
+def draw_checker_band():
+    # Board-colored checkered strip behind the title (top-left is light)
+    ti_draw.set_color(*BOARD_COLOR)
+    fill_box(BAND_X, BAND_Y, BAND_COLS * TILE_SIZE, BAND_ROWS * TILE_SIZE)
+    ti_draw.set_color(*BOARD_TILE)
+    for row in range(BAND_ROWS):
+        for col in range((row + 1) % 2, BAND_COLS, 2):
+            fill_box(BAND_X + col * TILE_SIZE, BAND_Y + row * TILE_SIZE,
+                     TILE_SIZE, TILE_SIZE)
 
 
 def draw_text_centered(y, text, color):
@@ -739,6 +754,7 @@ def title_screen():
     # color "w", "b", or "c" (CPU vs CPU: you just watch). Returns None if CLEAR is pressed on the first menu.
     # CLEAR on the color menu goes back to the difficulty menu.
     draw_bg(TITLE_BG)
+    draw_checker_band()
     draw_big_text("Chess", TITLE_Y, TITLE_COLOR)
     while True:
         level = run_menu("Select difficulty:", MENU, 1)   # Normal picked
@@ -845,7 +861,7 @@ def draw_box():
     # Message area filled with the board color, with a black border
     ti_draw.set_color(*PANEL_BG)
     fill_box(BOX_L + 1, BOX_T + 1, BOX_R - BOX_L - 1, BOX_B - BOX_T - 1)
-    ti_draw.set_color(*BOARDER)
+    ti_draw.set_color(*BORDER)
     ti_draw.draw_line(BOX_L, BOX_T, BOX_R, BOX_T)
     ti_draw.draw_line(BOX_L, BOX_B, BOX_R, BOX_B)
     ti_draw.draw_line(BOX_L, BOX_T, BOX_L, BOX_B)
@@ -989,7 +1005,7 @@ def player_move(b, legal, cur, you_y, you_tag, can_undo):
             text = move_text(you_tag, sq_name(sel) + ", " + sq_name(cur))
         if text != shown[0]:
             shown[0] = text
-            text_line(you_y, text, BOARD_TILE)
+            text_line(you_y, text, BORDER)
 
     show_sq(cur)
     track()
@@ -1068,18 +1084,18 @@ def show_log(result, score, log):
     # are drawn once. Scrolling only clears and redraws the moves
     # between the two lines.
     draw_bg()
-    ti_draw.set_color(*BOARDER)
+    ti_draw.set_color(*BORDER)
     ti_draw.draw_text(LOG_X, LOG_TOP, "Score Sheet - " + result)
     ti_draw.draw_line(LOG_X, LOG_TOP + 2, SCREEN_WIDTH - LOG_X, LOG_TOP + 2)
     ti_draw.draw_line(LOG_X, LOG_BOTTOM, SCREEN_WIDTH - LOG_X, LOG_BOTTOM)
     ti_graphics.setFont(SMALL_FONT)
-    draw_keys(LOG_X, SCREEN_HEIGHT - 8, LOG_HELP, BOARDER, True)
+    draw_keys(LOG_X, SCREEN_HEIGHT - 8, LOG_HELP, BORDER, True)
     ti_graphics.setFont(NORMAL_FONT)
 
     while True:
         ti_draw.set_color(*BG_COLOR)
         fill_box(0, LOG_TOP + 3, SCREEN_WIDTH, LOG_BOTTOM - LOG_TOP - 3)
-        ti_draw.set_color(*BOARD_TILE)
+        ti_draw.set_color(*BORDER)
         for r in range(LOG_ROWS):
             if top + r < len(lines):
                 cols = lines[top + r]
@@ -1136,8 +1152,8 @@ def run_game(level, you):
     first, second = MOVES_Y, MOVES_Y + LINE_H
     you_y, cpu_y = (second, first) if you == "b" else (first, second)
     you_tag, cpu_tag = ("B", "W") if you == "b" else ("W", "B")
-    text_line(you_y, move_text(you_tag), BOARD_TILE)
-    text_line(cpu_y, move_text(cpu_tag), BOARD_TILE)
+    text_line(you_y, move_text(you_tag), BORDER)
+    text_line(cpu_y, move_text(cpu_tag), BORDER)
     undo_ok = not watch and level in UNDO_LEVELS
     if watch:
         draw_help(HELP_WATCH)
@@ -1221,18 +1237,18 @@ def run_game(level, you):
                     if ob[sq] != b[sq]:
                         redraw_square(ob, sq)
                 b = ob
-                text_line(you_y, move_text(you_tag), BOARD_TILE)
-                text_line(cpu_y, move_text(cpu_tag), BOARD_TILE)
+                text_line(you_y, move_text(you_tag), BORDER)
+                text_line(cpu_y, move_text(cpu_tag), BORDER)
                 continue
         else:
             # CPU's turn (in CPU vs CPU both sides: white on the top
             # line, black on the bottom)
             y, tag = (you_y, you_tag) if side == you_tag.lower() else (cpu_y, cpu_tag)
             text_line(STATUS_Y, "Thinking")
-            text_line(y, move_text(tag), BOARD_TILE)
+            text_line(y, move_text(tag), BORDER)
             m = cpu_move(b, side, ep, cs, legal, level, seen)
             text_line(y, move_text(tag, sq_name(m[0]) + ", " + sq_name(m[1])),
-                      BOARD_TILE)
+                      BORDER)
 
         if b[m[1]] or b[m[0]][1] == "P":
             # A capture or pawn move can't be undone: reset the 50-move
