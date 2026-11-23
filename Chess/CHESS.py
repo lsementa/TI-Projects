@@ -774,7 +774,7 @@ BOX_L = BOARD_X + BOARD_SIZE + 6
 BOX_R = SCREEN_WIDTH - 6
 BOX_T = BOARD_Y
 BOX_B = BOARD_Y + BOARD_SIZE
-PANEL_BG = BOARD_COLOR            # inside of the message box
+PANEL_BG = BG_COLOR               # inside of the message box
 SMALL_FONT = 0                    # ti_graphics.setFont: 0 = small, 1 = medium
 NORMAL_FONT = 1
 SMALL_CHAR_W = 8                  # small font: about 40 letters across 320 px
