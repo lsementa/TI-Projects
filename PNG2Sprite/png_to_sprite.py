@@ -4,10 +4,10 @@ import sys
 
 MAX_WIDTH = 4000
 MAX_HEIGHT = 4000
-COLORS = 2          # fewer colors = far fewer rectangles = faster drawing
+COLORS = 4          # fewer colors = far fewer rectangles = faster drawing
 REMOVE_HALO = True  # drop near-white anti-alias fringe touching the outside
 HALO_LEVEL = 200    # a pixel is "near-white" if R, G and B are all >= this
-SCALE = 16          # percent to resize every input image by (50 = half size)
+SCALE = 100          # percent to resize every input image by (50 = half size)
                     # override from the command line: python png_to_sprite.py 50
 SMOOTH_SCALE = False # False = nearest neighbor (crisp pixel art, fewer colors)
                       # True  = smooth/averaged (better for photos, more rects)
@@ -25,10 +25,16 @@ FILL_HOLES = False    # fill transparent holes inside the shape (turns an
                       # outline into a solid silhouette). command line: --fill
 
 # Output type
-MAKE_8XV2 = False     # False = one sprites.py with every palette and sprite
+MAKE_8XV2 = True     # False = one sprites.py with every palette and sprite
                       # True  = a NAME.8xv2 calculator image per PNG, drawn with
                       #         ti_graphics.drawImage("NAME", x, y). File names
                       #         must be 8 characters max. command line: --8xv2
+OPAQUE = True        # .8xv2 only. False = transparent background
+                      # True  = background filled with OPAQUE_BG, so a moving
+                      #         sprite redrawn over itself covers its old frame
+                      #         (no erase needed, no flicker on a plain
+                      #         background). command line: --opaque
+OPAQUE_BG = 0xFFFFFF  # background color used by OPAQUE
 
 
 def is_light(rgb):
@@ -320,11 +326,12 @@ def im8c_file(name, width, height, palette, pixels, transparent=False):
     return body + evo_checksum(body).to_bytes(2, "big")
 
 
-def grid_to_image(width, height, palette, grid):
-    """Transparent background: index 0 = transparent, sprite colors after."""
+def grid_to_image(width, height, palette, grid, background=0):
+    """Index 0 = background (transparent, or `background` when opaque),
+    sprite colors after."""
     pixels = [0 if (x, y) not in grid else grid[(x, y)] + 1
               for y in range(height) for x in range(width)]
-    return [0] + list(palette), pixels
+    return [background] + list(palette), pixels
 
 
 def load_grid(filename, scale=SCALE):
@@ -426,6 +433,8 @@ if __name__ == "__main__":
             continue
         if a == "--fill":
             FILL_HOLES = True
+        elif a == "--opaque":
+            OPAQUE = True
         elif a in ("--8xv2", "--im8c"):
             IM8C = True     # write NAME.8xv2 images for ti_graphics.drawImage
         else:
@@ -476,10 +485,13 @@ if __name__ == "__main__":
         for png_file in png_files:
             name = os.path.splitext(png_file)[0].upper()
             w, h, pal, grid = load_grid(os.path.join(input_dir, png_file), scale)
-            pal, pixels = grid_to_image(w, h, pal, grid)
+            pal, pixels = grid_to_image(w, h, pal, grid,
+                                        OPAQUE_BG if OPAQUE else 0)
             with open(os.path.join(output_dir, name + ".8xv2"), "wb") as f:
-                f.write(im8c_file(name, w, h, pal, pixels, transparent=True))
-            print(f"Converted: {png_file} -> {name}.8xv2  ({w} x {h})")
+                f.write(im8c_file(name, w, h, pal, pixels,
+                                  transparent=not OPAQUE))
+            print(f"Converted: {png_file} -> {name}.8xv2  ({w} x {h}"
+                  + (", opaque)" if OPAQUE else ")"))
         print(f"Saved {len(png_files)} image(s) to {output_dir}")
         print('On the calculator: from ti_graphics import drawImage; '
               'drawImage("NAME", x, y)')
