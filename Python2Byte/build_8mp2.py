@@ -19,8 +19,12 @@ import tempfile
 
 # ---- Edit these -----------------------------------------------------------
 
-NEW_PY_NAME = "TEST"          # launcher name
-NEW_MOD_NAME = "TESTM"        # module name
+NEW_PY_NAME = "CHESS"           # launcher name
+NEW_MOD_NAME = "CHESSM"         # module name
+OPTIMIZE = True                 # True = compile with -O3: about 7% smaller and
+                                # asserts removed, but errors on the calculator
+                                # no longer show line numbers. Leave False while
+                                # debugging.
 
 # ---------------------------------------------------------------------------
 
@@ -126,7 +130,8 @@ def compile_mpy(src_path, module):
     """Compile src_path as <module>.py so the bytecode carries that name."""
     with tempfile.TemporaryDirectory() as tmp:
         shutil.copyfile(src_path, os.path.join(tmp, module + ".py"))
-        subprocess.run(find_mpy_cross() + MPY_FLAGS + [module + ".py"],
+        flags = MPY_FLAGS + (["-O3"] if OPTIMIZE else [])
+        subprocess.run(find_mpy_cross() + flags + [module + ".py"],
                        cwd=tmp, check=True)
         with open(os.path.join(tmp, module + ".mpy"), "rb") as f:
             mpy = f.read()
@@ -169,7 +174,7 @@ def main():
         sys.exit("NEW_PY_NAME and NEW_MOD_NAME must be different")
 
     src = find_source()
-    print("Compiling", src, "as", module)
+    print("Compiling", src, "as", module, "(-O3)" if OPTIMIZE else "")
     mpy = compile_mpy(src, module)
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)

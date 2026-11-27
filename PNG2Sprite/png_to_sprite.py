@@ -4,10 +4,10 @@ import sys
 
 MAX_WIDTH = 4000
 MAX_HEIGHT = 4000
-COLORS = 4          # fewer colors = far fewer rectangles = faster drawing
+COLORS = 1          # fewer colors = far fewer rectangles = faster drawing
 REMOVE_HALO = True  # drop near-white anti-alias fringe touching the outside
 HALO_LEVEL = 200    # a pixel is "near-white" if R, G and B are all >= this
-SCALE = 100          # percent to resize every input image by (50 = half size)
+SCALE = 100         # percent to resize every input image by (50 = half size)
                     # override from the command line: python png_to_sprite.py 50
 SMOOTH_SCALE = False # False = nearest neighbor (crisp pixel art, fewer colors)
                       # True  = smooth/averaged (better for photos, more rects)
@@ -25,16 +25,25 @@ FILL_HOLES = False    # fill transparent holes inside the shape (turns an
                       # outline into a solid silhouette). command line: --fill
 
 # Output type
-MAKE_8XV2 = True     # False = one sprites.py with every palette and sprite
+MAKE_8XV2 = False     # False = one sprites.py with every palette and sprite
                       # True  = a NAME.8xv2 calculator image per PNG, drawn with
                       #         ti_graphics.drawImage("NAME", x, y). File names
                       #         must be 8 characters max. command line: --8xv2
-OPAQUE = True        # .8xv2 only. False = transparent background
+OPAQUE = False        # .8xv2 only. False = transparent background
                       # True  = background filled with OPAQUE_BG, so a moving
                       #         sprite redrawn over itself covers its old frame
                       #         (no erase needed, no flicker on a plain
                       #         background). command line: --opaque
 OPAQUE_BG = 0xFFFFFF  # background color used by OPAQUE
+BYTES = True          # sprites.py only. False = each rectangle packed into an
+                      #         int (lists of ints, as before)
+                      # True  = each color's rectangles as one bytes literal,
+                      #         4 bytes (x, y, w, h) per rectangle, plus a
+                      #         draw_sprite() helper in sprites.py. About 30%
+                      #         smaller once compiled to .8mp2 and uses far
+                      #         less RAM (one object per color instead of a
+                      #         list of ints). Images must be 255 x 255 or
+                      #         smaller. command line: --bytes
 
 
 def is_light(rgb):
@@ -209,6 +218,35 @@ def approximate_rects(mask, max_rects, penalty):
 
 def encode_rect(x, y, w, h):
     return ((x + 1) << 25) | ((y + 1) << 17) | (w << 8) | h
+
+
+def sprites_to_bytes(sprites):
+    """Repack {color: [color, int, int, ...]} as {color: bytes}, 4 bytes
+    (x, y, w, h) per rectangle."""
+    packed = {}
+    for color, encoded in sprites.items():
+        out = bytearray()
+        for v in encoded[1:]:
+            out += bytes([(v >> 25) - 1, ((v >> 17) & 255) - 1,
+                          (v >> 8) & 511, v & 255])
+        packed[color] = bytes(out)
+    return packed
+
+
+# Written into sprites.py when BYTES is on. Same placement as EXAMPLE.py's
+# draw_sprite (x - 1, size + 1 to match ti_draw.fill_rect).
+BYTES_HELPER = '''import ti_draw
+
+
+def draw_sprite(x, y, palette, sprites):
+    for c in sprites:
+        rgb = palette[c]
+        ti_draw.set_color(rgb >> 16, (rgb >> 8) & 255, rgb & 255)
+        r = sprites[c]
+        for i in range(0, len(r), 4):
+            ti_draw.fill_rect(x + r[i] - 1, y + r[i + 1] - 1,
+                              r[i + 2] + 1, r[i + 3] + 1)
+'''
 
 
 def scale_image(img, percent):
@@ -435,6 +473,8 @@ if __name__ == "__main__":
             FILL_HOLES = True
         elif a == "--opaque":
             OPAQUE = True
+        elif a == "--bytes":
+            BYTES = True
         elif a in ("--8xv2", "--im8c"):
             IM8C = True     # write NAME.8xv2 images for ti_graphics.drawImage
         else:
@@ -506,12 +546,22 @@ if __name__ == "__main__":
                 ident = "_" + ident
             width, height, palette, sprites = convert_png(
                 os.path.join(input_dir, png_file), scale)
+            rect_count = sum(len(v) - 1 for v in sprites.values())
+            if BYTES:
+                if width > 255 or height > 255:
+                    sys.exit(f"{png_file} is {width} x {height}; --bytes "
+                             "needs 255 x 255 or smaller (scale it down or "
+                             "turn BYTES off)")
+                sprites = sprites_to_bytes(sprites)
             lines.append(f"\n# {png_file}: {width} x {height}\n")
             lines.append(f"{ident}_palette = {palette!r}\n")
             lines.append(f"{ident}_sprites = {sprites!r}\n")
             print(f"Converted: {png_file}  ({width} x {height}, "
                   f"{len(palette)} colors, "
-                  f"{sum(len(v) - 1 for v in sprites.values())} rectangles)")
+                  f"{rect_count} rectangles)")
+        if BYTES:
+            lines.insert(1, "# draw_sprite(x, y, NAME_palette, NAME_sprites)"
+                            "\n\n" + BYTES_HELPER)
         output_path = os.path.join(output_dir, COMBINED_NAME)
         with open(output_path, "w") as f:
             f.writelines(lines)
