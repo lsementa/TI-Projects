@@ -29,6 +29,8 @@ python png_to_sprite.py                  # convert every PNG at 100% scale
 python png_to_sprite.py 50               # scale every image to 50%
 python png_to_sprite.py 100 cloud.png    # convert only the listed files
 python png_to_sprite.py --8xv2           # write .8xv2 calculator images
+python png_to_sprite.py --8xv2 --opaque  # .8xv2 images with a solid background
+python png_to_sprite.py --bytes          # pack sprite rectangles as bytes literals
 python png_to_sprite.py --max-rects 8    # approximate each sprite with at most 8 rectangles
 python png_to_sprite.py --fill           # fill holes to make a solid silhouette
 ```
@@ -37,9 +39,11 @@ python png_to_sprite.py --fill           # fill holes to make a solid silhouette
 
 **Sprite data output.** `sprites.py` contains a `NAME_palette` list (24-bit RGB integers) and a `NAME_sprites` dictionary for each image, ready to paste into a TI-84 Python script. Each `fill_rect` call costs about 8 ms on the calculator, so fewer colors and `--max-rects` keep moving sprites fast.
 
-**.8xv2 output.** The file name becomes the calculator variable name, so PNG names must be 8 characters or fewer, using only letters and digits and starting with a letter. Send the `.8xv2` files to the calculator with your Python program. Transparent pixels stay transparent.
+**Bytes format** (`BYTES = True`, the default, or `--bytes`). Each color's rectangles are stored as one `bytes` literal, 4 bytes (x, y, w, h) per rectangle, instead of a list of packed integers. `sprites.py` also includes a `draw_sprite(x, y, NAME_palette, NAME_sprites)` helper to draw them. This is about 30% smaller once compiled with Python2Byte and uses far less RAM, since each color is a single object. Images must be 255 x 255 or smaller; set `BYTES = False` for the older list-of-ints format.
 
-**Settings.** The constants at the top of the script control the defaults: `COLORS` (number of colors kept, 1 by default), `REMOVE_HALO` / `HALO_LEVEL` (removes near-white anti-aliasing fringe around the edges), `SMOOTH_SCALE` (nearest-neighbor or smooth resizing), and `MAX_WIDTH` / `MAX_HEIGHT`.
+**.8xv2 output.** The file name becomes the calculator variable name, so PNG names must be 8 characters or fewer, using only letters and digits and starting with a letter. Send the `.8xv2` files to the calculator with your Python program. Transparent pixels stay transparent, unless you use `--opaque`, which fills the background with `OPAQUE_BG` (white by default). An opaque sprite redrawn over itself covers its old frame, so a sprite moving on a plain background needs no erase and doesn't flicker.
+
+**Settings.** The constants at the top of the script control the defaults: `COLORS` (number of colors kept, 1 by default), `REMOVE_HALO` / `HALO_LEVEL` (removes near-white anti-aliasing fringe around the edges), `SMOOTH_SCALE` (nearest-neighbor or smooth resizing), `MAKE_8XV2`, `OPAQUE` / `OPAQUE_BG`, `BYTES`, and `MAX_WIDTH` / `MAX_HEIGHT`.
 
 ---
 
@@ -58,11 +62,12 @@ pip install mpy-cross==1.17
 **Usage**
 
 1. Place your `.py` file in `Python2Byte/input/`
-2. Edit the two names at the top of `build_8mp2.py`:
+2. Edit the settings at the top of `build_8mp2.py`:
 
 ```python
-NEW_PY_NAME = "TEST"          # launcher name (what you run on the calculator)
-NEW_MOD_NAME = "TESTM"        # module name (the .8mp2 file)
+NEW_PY_NAME = "TEST"         # launcher name (what you run on the calculator)
+NEW_MOD_NAME = "TESTM"       # module name (the .8mp2 file)
+OPTIMIZE = True               # compile with -O3
 ```
 
 3. Run the script:
@@ -79,6 +84,8 @@ python build_8mp2.py
 **Naming rules.** `NEW_MOD_NAME` must be 1 to 8 characters, using only letters and digits and starting with a letter. It is uppercased automatically. The two names must be different.
 
 **Input file.** If `input/` holds a single `.py` file, that file is built. If it holds several, the script builds the one named `<NEW_PY_NAME>.py`.
+
+**Optimize.** With `OPTIMIZE = True`, the program is compiled with `-O3`. The output is about 7% smaller and `assert` statements are removed, but errors on the calculator no longer show line numbers. Leave it `False` while debugging.
 
 **Missing module.** If the `.8mp2` file isn't on the calculator, the launcher prints a message asking you to send it, so you don't get a bare `ImportError`.
 
@@ -108,7 +115,9 @@ Play chess against the calculator, or watch it play itself.
 - `[2nd]`: quit to the title screen
 - `[stat]`: show the score sheet after the game ends
 
-**Installation:** send `CHESS.py` to the calculator. The piece sprites are already built into the script; the PNGs in `Chess/images/` are the source images, converted with PNG2Sprite.
+**Installation:** send `CHESS.py` and `CHESSM.8mp2` to the calculator, then run `CHESS` from the Python app. The game is compiled to bytecode with Python2Byte, so `CHESS.py` is only a small launcher that loads `CHESSM.8mp2`; it starts faster than the plain script.
+
+**Source:** the full program is in `Chess/raw files/CHESS.py`, which also runs on its own as a regular `.py`. The piece sprites are built into it in PNG2Sprite's bytes format; the PNGs in `Chess/raw files/images/` are the source images.
 
 ---
 
