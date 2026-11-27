@@ -43,6 +43,45 @@ python png_to_sprite.py --fill           # fill holes to make a solid silhouette
 
 ---
 
+### Python2Byte
+
+> `Python2Byte/build_8mp2.py`
+
+A desktop Python utility that compiles a TI-84 Python program to MicroPython bytecode and packages it as a calculator module (`.8mp2`). It also writes a small launcher `.py` that imports the module. Your program then runs from the calculator's Python app like any other script. The calculator skips parsing and compiling at startup, and the source code isn't shipped.
+
+**Requirements:** `mpy-cross` 1.17. The calculator needs `.mpy` format version 5, and newer releases of `mpy-cross` produce a different format.
+
+```bash
+pip install mpy-cross==1.17
+```
+
+**Usage**
+
+1. Place your `.py` file in `Python2Byte/input/`
+2. Edit the two names at the top of `build_8mp2.py`:
+
+```python
+NEW_PY_NAME = "TEST"          # launcher name (what you run on the calculator)
+NEW_MOD_NAME = "TESTM"        # module name (the .8mp2 file)
+```
+
+3. Run the script:
+
+```bash
+python build_8mp2.py
+```
+
+4. Output appears in `Python2Byte/output/`:
+   - `<NEW_MOD_NAME>.8mp2`: the compiled program
+   - `<NEW_PY_NAME>.py`: the launcher
+5. Send both files to the calculator and run `<NEW_PY_NAME>` from the Python app.
+
+**Naming rules.** `NEW_MOD_NAME` must be 1 to 8 characters, using only letters and digits and starting with a letter. It is uppercased automatically. The two names must be different.
+
+**Input file.** If `input/` holds a single `.py` file, that file is built. If it holds several, the script builds the one named `<NEW_PY_NAME>.py`.
+
+**Missing module.** If the `.8mp2` file isn't on the calculator, the launcher prints a message asking you to send it, so you don't get a bare `ImportError`.
+
 ---
 
 ### Chess
