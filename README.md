@@ -165,13 +165,24 @@ A fully-featured Blackjack game.
 
 Classic brick-breaker. Move the paddle left and right to bounce the ball and clear every brick on the board.
 
-![Breakout screenshot](Screenshots/breakout.png)
+![Breakout screenshot](Screenshots/breakout1.png) ![Breakout screenshot2](Screenshots/breakout2.png)
 
 **Features**
-- 5 rows of colored bricks worth 1–5 points
-- Paddle with momentum; where the ball hits the paddle controls its bounce angle
+- Title menu with two modes: Play (3 lives, score kept) and Practice (unlimited lives, no score)
+- 5 rows of sprite bricks worth 1–5 points (the top row is worth the most)
+- Wheel-style paddle: a tap nudges it, holding an arrow speeds it up, and it stops as soon as you let go
+- Where the ball hits the paddle controls its bounce angle
 - 6 rotating brick patterns, with the ball speeding up each level
-- Pause support
+
+**Controls**
+- `[left]` / `[right]`: move the paddle
+- `[up]` / `[down]` and `[enter]`: choose a menu option
+- `[2nd]`: pause
+- `[clear]`: back to the menu (quits from the menu)
+
+**Installation:** send `BREAKOUT.py` and `BREAKOYM.8mp2` to the calculator, then run `BREAKOUT` from the Python app. The game is compiled to bytecode with Python2Byte, so `BREAKOUT.py` is only a small launcher that loads `BREAKOYM.8mp2`; it starts faster than the plain script.
+
+**Source:** the full program is in `Breakout/raw files/BREAKOUT.py`, which also runs on its own as a regular `.py`. The brick sprites are built into it in PNG2Sprite's bytes format; the PNGs in `Breakout/raw files/images/` are the source images.
 
 ---
 
