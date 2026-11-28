@@ -3,12 +3,17 @@ import random
 import ti_graphics
 import ti_image
 from ti_system import *
+try:
+    from micropython import const   # compiled (.8mp2): values built in
+except ImportError:
+    def const(x):                   # plain .py without micropython
+        return x
 
 # Dimensions
-SCREEN_WIDTH  = 321
-SCREEN_HEIGHT = 211
-BUTTON_HEIGHT = 22
-CHAR_W = 10
+SCREEN_WIDTH  = const(321)
+SCREEN_HEIGHT = const(211)
+BUTTON_HEIGHT = const(22)
+CHAR_W = const(10)
 
 # Colors
 BG_COLOR   = (53, 101, 77)
@@ -19,58 +24,60 @@ RED_SUITE  = (255, 0, 0)
 BLACK_SUITE = (0, 0, 0)
 
 # Keys
-CLEAR_KEY = 45
-YEQ  = 11   # F1 - MAX / CLEAR bet
-WIN  = 12   # F2 - $5
-ZOOM = 13   # F3 - $20
-TRCE = 14   # F4 - $100 / HIT
-GRPH = 15   # F5 - DEAL / STAY
+CLEAR_KEY = const(45)
+YEQ  = const(11)   # F1 - MAX / CLEAR bet
+WIN  = const(12)   # F2 - $5
+ZOOM = const(13)   # F3 - $20
+TRCE = const(14)   # F4 - $100 / HIT
+GRPH = const(15)   # F5 - DEAL / STAY
 
 RANKS = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"]
 SUITS = ["S","H","D","C"]
 
-STARTING_BALANCE = 500
+STARTING_BALANCE = const(500)
 
 _menu = ["", "", "", "", ""]
 
+# card.png: 47 x 62
 card_palette = [16777215, 16645629, 0]
-card_sprites = {0: [0, 100936449, 1543897345, 67513089, 67644729, 108669697], 1: [1, 1510342913], 2: [2, 100805377, 67371265, 1543766273, 33947962, 1577451834, 75104513, 1551499521, 108800769]}
+card_sprites = {0: b'\x02\x01+\x01-\x02\x01\x01\x01\x02+\x01\x01\x03-9\x02<+\x01', 1: b',\x02\x01\x01', 2: b'\x02\x00+\x01\x01\x01\x01\x01-\x01\x01\x01\x00\x02\x01:.\x02\x01:\x01<\x01\x01-<\x01\x01\x02=+\x01'}
 
+# back.png: 47 x 62
 back_palette = [3107777, 16777215, 0]
-back_sprites = {0: [0, 134753337], 1: [1, 100936706, 67513857, 67633722, 1510474553, 142093313, 142224129], 2: [2, 100805377, 67371265, 1543766273, 33947962, 1577451834, 75104513, 1551499521, 108800769]}
+back_sprites = {0: b'\x03\x03,9', 1: b'\x02\x01,\x02\x01\x02.\x01\x01\x03\x02:,\x03\x039\x03;,\x01\x03<+\x01', 2: b'\x02\x00+\x01\x01\x01\x01\x01-\x01\x01\x01\x00\x02\x01:.\x02\x01:\x01<\x01\x01-<\x01\x01\x02=+\x01'}
 
 # TI_Logo.png: 26 x 26
 TI_Logo_palette = [0]
-TI_Logo_sprites = {0: [0, 268568073, 604242179, 570819330, 470548994, 571212293, 671876355, 839778561, 470810881, 538051330, 705824009, 269747464, 34999298, 538313221, 437780742, 639109125, 68815873, 102501121, 505152258, 136186370, 505414145, 170002689, 673318401, 170132225, 371458561, 673448961, 405144066, 673579521, 472385281, 438961922, 472777986, 506594561, 540279809]}
+TI_Logo_sprites = {0: b'\x07\x00\x06\t\x11\x01\x01\x03\x10\x02\x03\x02\r\x05\x02\x02\x10\x05\x02\x05\x13\x05\x05\x03\x18\x06\x01\x01\r\x07\x01\x01\x0f\x08\x03\x02\x14\x08\x05\t\x07\t\x05\x08\x00\n\x0c\x02\x0f\n\x02\x05\x0c\x0b\x01\x06\x12\x0b\x08\x05\x01\x0c\x0c\x01\x02\r\x0b\x01\x0e\r\x03\x02\x03\x0e\n\x02\x0e\x0f\x02\x01\x04\x10\t\x01\x13\x10\x06\x01\x04\x11\x03\x01\n\x11\x02\x01\x13\x11\x04\x01\x0b\x12\x02\x02\x13\x12\x02\x01\r\x13\x07\x01\x0c\x14\x07\x02\r\x16\x05\x02\x0e\x18\x05\x01\x0f\x19\x04\x01'}
 
 # club.png: 25 x 25
 club_palette = [2301728]
-club_sprites = {0: [0, 402785299, 335808274, 302385425, 268962566, 638320899, 605290765, 202772489, 135795720, 102372871, 68949766, 840958210, 103287041, 438831873, 136972033, 438960645, 539625217, 204210945, 405537540, 640418305, 506331395, 372245762, 338822913]}
+club_sprites = {0: b'\x0b\x00\x04\x13\t\x01\x07\x12\x08\x02\t\x11\x07\x03\x0b\x06\x12\x05\x01\x03\x11\t\x01\r\x05\n\x10\t\x03\x0b\x14\x08\x02\x0c\x16\x07\x01\r\x17\x06\x18\x0f\x01\x02\x02\x13\t\x01\x0c\x13\x0b\x01\x03\x14\x07\x01\x0c\x14\x02\x05\x0f\x14\x07\x01\x05\x15\x03\x01\x0b\x15\x03\x04\x12\x15\x02\x01\x0e\x16\x01\x03\n\x17\x05\x02\t\x18\x07\x01'}
 
-# diamond.png: 25 x 25
+# diamond.png: 22 x 25
 diamond_palette = [16646144]
-diamond_sprites = {0: [0, 436470040, 403047189, 369624339, 336332559, 302909709, 269486859, 236195079, 202772229, 169349379, 135926529]}
+diamond_sprites = {0: b'\x0c\x01\x01\x18\x0b\x02\x03\x15\n\x03\x05\x13\t\x05\x07\x0f\x08\x06\t\r\x07\x07\x0b\x0b\x06\t\r\x07\x05\n\x0f\x05\x04\x0b\x11\x03\x03\x0c\x13\x01'}
 
-# heart.png: 25 x 25
+# heart.png: 24 x 24
 heart_palette = [16646144]
-heart_sprites = {0: [0, 168166925, 537265933, 134744075, 503843082, 101321225, 470419977, 67901190, 437783553, 437914369, 404491010, 371067905, 203427841, 237112833, 270797825, 304482817, 338167809, 371852801, 405537538, 439353601]}
+heart_sprites = {0: b'\x04\x02\x06\r\x0f\x02\x07\r\x03\x03\x08\x0b\x0e\x03\t\n\x02\x04\n\t\r\x04\n\t\x01\x05\x17\x06\x0c\x0b\x0c\x01\x0c\x0c\x0b\x01\x0b\r\x0b\x02\n\x0e\x0c\x01\x05\x0f\x10\x01\x06\x10\x0e\x01\x07\x11\x0c\x01\x08\x12\n\x01\t\x13\x08\x01\n\x14\x06\x01\x0b\x15\x03\x02\x0c\x17\x01\x01'}
 
-# spade.png: 25 x 25
+# spade.png: 24 x 25
 spade_palette = [2301728]
-spade_sprites = {0: [0, 436470296, 403047185, 369624336, 336201487, 302778638, 269355789, 235932940, 202510091, 169087242, 135664393, 102241544, 807141637, 69080835, 136841217, 505939969, 170526209, 405406469, 539624961, 506331395, 372245762, 338822913]}
+spade_sprites = {0: b'\x0c\x01\x02\x18\x0b\x02\x03\x11\n\x03\x05\x10\t\x04\x07\x0f\x08\x05\t\x0e\x07\x06\x0b\r\x06\x07\r\x0c\x05\x08\x0f\x0b\x04\t\x11\n\x03\n\x13\t\x02\x0b\x15\x08\x17\r\x01\x05\x01\x0e\x17\x03\x03\x13\x08\x01\x0e\x13\x08\x01\x04\x14\x06\x01\x0b\x14\x03\x05\x0f\x14\x06\x01\x0e\x16\x01\x03\n\x17\x05\x02\t\x18\x07\x01'}
 
 # Card layout
-CARD_W       = 47
-CARD_H       = 62
-CARD_SPACING = CARD_W - 23   # overlap
-DEALER_Y     = 20
-PLAYER_Y     = 109
+CARD_W       = const(47)
+CARD_H       = const(62)
+CARD_SPACING = const(CARD_W - 23)   # overlap
+DEALER_Y     = const(20)
+PLAYER_Y     = const(109)
 
 # Text y-positions for play screen
-BAL_Y    = 19
-D_VAL_Y  = 85
-P_VAL_Y  = 174
-STATUS_Y = 104   # center of gap between dealer and player
+BAL_Y    = const(19)
+D_VAL_Y  = const(85)
+P_VAL_Y  = const(174)
+STATUS_Y = const(104)   # center of gap between dealer and player
 
 _dealer_cards = [[0, 0] for _ in range(10)]
 _player_cards = [[0, 0] for _ in range(10)]
@@ -123,71 +130,52 @@ def draw_value(x, y, card_value, color=BLACK_SUITE):
     ti_graphics.setFont(1)
 
 
-def rgb(color):
-    return (
-        (color >> 16) & 255,
-        (color >> 8) & 255,
-        color & 255
-    )
+def draw_sprite(x, y, palette, sprites):
+    for c in sprites:
+        rgb = palette[c]
+        ti_draw.set_color(rgb >> 16, (rgb >> 8) & 255, rgb & 255)
+        r = sprites[c]
+        for i in range(0, len(r), 4):
+            ti_draw.fill_rect(x + r[i] - 1, y + r[i + 1] - 1,
+                              r[i + 2] + 1, r[i + 3] + 1)
 
 
-def prepare_sprite(palette, sprs):
-    prepared = {}
-    colors = [rgb(c) for c in palette]
-    for sprite_id, spr in sprs.items():
-        rectangles = []
-        for value in spr[1:]:
-            px = (value >> 25) & 511
-            py = (value >> 17) & 255
-            w  = (value >> 8)  & 511
-            h  = value & 255
-            if w > 0 and h > 0:
-                rectangles.append((px, py, w, h))
-        prepared[sprite_id] = (colors[spr[0]], rectangles)
-    return prepared
-
-
-_card      = prepare_sprite(card_palette, card_sprites)
-_back      = prepare_sprite(back_palette, back_sprites)
-_logo      = prepare_sprite(TI_Logo_palette, TI_Logo_sprites)
-_club      = prepare_sprite(club_palette, club_sprites)
-_diamond   = prepare_sprite(diamond_palette, diamond_sprites)
-_heart     = prepare_sprite(heart_palette, heart_sprites)
-_spade     = prepare_sprite(spade_palette, spade_sprites)
-
-
-def draw_sprite(x, y, prepared):
-    for sprite_id in prepared:
-        color, rectangles = prepared[sprite_id]
-        ti_draw.set_color(*color)
-        for px, py, w, h in rectangles:
-            ti_draw.fill_rect(x + px - 2, y + py - 2, w + 1, h + 1)
-
-
-def sprite_center(prepared):
+def sprite_center(sprites):
     # Center point of the sprite's bounding box (in sprite-local coords)
-    min_x = min_y = 9999
-    max_x = max_y = -9999
-    for sprite_id in prepared:
-        for px, py, w, h in prepared[sprite_id][1]:
+    min_x = min_y = 255
+    max_x = max_y = 0
+    for c in sprites:
+        r = sprites[c]
+        for i in range(0, len(r), 4):
+            px = r[i]
+            py = r[i + 1]
             if px < min_x: min_x = px
             if py < min_y: min_y = py
-            if px + w > max_x: max_x = px + w
-            if py + h > max_y: max_y = py + h
+            if px + r[i + 2] > max_x: max_x = px + r[i + 2]
+            if py + r[i + 3] > max_y: max_y = py + r[i + 3]
     return ((min_x + max_x) // 2, (min_y + max_y) // 2)
 
 
-_card_cx, _card_cy = sprite_center(_card)
-# Offset to add to the card's (x, y) so each suit sprite lands centered on the card
-_suit_offsets = {}
-for _s in (_logo, _heart, _diamond, _club, _spade):
-    _sx, _sy = sprite_center(_s)
-    _suit_offsets[id(_s)] = (_card_cx - _sx, _card_cy - _sy)
+_card_cx, _card_cy = sprite_center(card_sprites)
 
 
-def draw_sprite_centered(x, y, prepared):
-    dx, dy = _suit_offsets[id(prepared)]
-    draw_sprite(x + dx, y + dy, prepared)
+def centered(palette, sprites):
+    # (palette, sprites, dx, dy): dx/dy is the offset to add to the card's
+    # (x, y) so the sprite lands centered on the card
+    sx, sy = sprite_center(sprites)
+    return (palette, sprites, _card_cx - sx, _card_cy - sy)
+
+
+_logo  = centered(TI_Logo_palette, TI_Logo_sprites)
+# Indexed by suit: 0 = spades, 1 = hearts, 2 = diamonds, 3 = clubs
+_suits = (centered(spade_palette, spade_sprites),
+          centered(heart_palette, heart_sprites),
+          centered(diamond_palette, diamond_sprites),
+          centered(club_palette, club_sprites))
+
+
+def draw_sprite_centered(x, y, s):
+    draw_sprite(x + s[2], y + s[3], s[0], s[1])
 
 
 def center_cards(user, num_cards):
@@ -203,28 +191,17 @@ def center_cards(user, num_cards):
             _dealer_cards[i][1] = DEALER_Y
 
 
-def _draw_suit(x, y, suit):
-    if suit == 1:
-        draw_sprite_centered(x, y, _heart)
-    elif suit == 2:
-        draw_sprite_centered(x, y, _diamond)
-    elif suit == 3:
-        draw_sprite_centered(x, y, _club)
-    else:
-        draw_sprite_centered(x, y, _spade)
-
-
 def draw_card(x, y, card_index):
-    draw_sprite(x, y, _card)
+    draw_sprite(x, y, card_palette, card_sprites)
     suit  = card_index // 13
     rank  = card_index % 13
     color = RED_SUITE if suit in (1, 2) else BLACK_SUITE
-    _draw_suit(x, y, suit)
+    draw_sprite_centered(x, y, _suits[suit])
     draw_value(x, y, RANKS[rank], color)
 
 
 def draw_card_back_at(x, y):
-    draw_sprite(x, y, _back)
+    draw_sprite(x, y, back_palette, back_sprites)
     draw_sprite_centered(x, y, _logo)
 
 

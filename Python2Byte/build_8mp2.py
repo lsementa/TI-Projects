@@ -19,8 +19,8 @@ import tempfile
 
 # ---- Edit these -----------------------------------------------------------
 
-NEW_PY_NAME = "CHESS"           # launcher name
-NEW_MOD_NAME = "CHESSM"         # module name
+NEW_PY_NAME = "TEST"            # launcher name
+NEW_MOD_NAME = "TESTM"          # module name
 OPTIMIZE = True                 # True = compile with -O3: about 7% smaller and
                                 # asserts removed, but errors on the calculator
                                 # no longer show line numbers. Leave False while

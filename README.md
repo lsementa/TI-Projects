@@ -153,6 +153,10 @@ A fully-featured Blackjack game.
 - Dealer draws to soft 17
 - 5-Card Trick: collect 5 cards without busting to auto-win
 
+**Installation:** send `BLCKJACK.py` and `BLCKJACM.8mp2` to the calculator, then run `BLCKJACK` from the Python app. The game is compiled to bytecode with Python2Byte, so `BLCKJACK.py` is only a small launcher that loads `BLCKJACM.8mp2`; it starts faster than the plain script.
+
+**Source:** the full program is in `Blackjack/raw files/BLCKJACK.py`, which also runs on its own as a regular `.py`. The card and suit sprites are built into it in PNG2Sprite's bytes format; the PNGs in `Blackjack/raw files/images/` are the source images.
+
 ---
 
 ### Breakout
