@@ -39,6 +39,8 @@ WHITE  = (255, 255, 255)
 RED    = (255, 0,   0)
 YELLOW = (255, 255, 0)
 GRAY   = (180, 180, 180)
+BLUE_FONT = (0, 0, 255)
+KEY_COLOR = BLUE_FONT          # key names inside "[...]"
 
 # Key codes
 K_LEFT  = const(24)
@@ -214,6 +216,33 @@ def erase_ball(bx, by):
     ti_draw.fill_rect(int(bx), int(by), BALL_SZ, BALL_SZ)
 
 
+def draw_keys(x, y, text, color):
+    # Draw text with the key names inside "[...]" in KEY_COLOR
+    sc(color)
+    ti_draw.draw_text(x, y, text)
+    runs = []                        # (start, end) of each key name
+    inside = False
+    start = -1
+    for i in range(len(text) + 1):
+        ch = text[i] if i < len(text) else "]"
+        key = inside and ch not in "[]/"
+        if ch == "[":
+            inside = True
+        elif ch == "]":
+            inside = False
+        if key and start < 0:
+            start = i
+        elif not key and start >= 0:
+            runs.append((start, i))
+            start = -1
+    for start, end in reversed(runs):
+        sc(KEY_COLOR)
+        ti_draw.draw_text(x, y, text[:end])
+        sc(color)
+        if start:
+            ti_draw.draw_text(x, y, text[:start])
+
+
 def show_msg(t1, t2, t3):
     clear_all()
     cx = SCREEN_W // 2
@@ -222,8 +251,7 @@ def show_msg(t1, t2, t3):
     ti_draw.draw_text(cx - len(t1) * CHAR_W // 2, cy - 30, t1)
     sc(YELLOW)
     ti_draw.draw_text(cx - len(t2) * CHAR_W // 2, cy, t2)
-    sc(WHITE)
-    ti_draw.draw_text(cx - len(t3) * CHAR_W // 2, cy + 35, t3)
+    draw_keys(cx - len(t3) * CHAR_W // 2, cy + 35, t3, WHITE)
 
 
 def new_ball(px, py, v):
@@ -502,8 +530,7 @@ def draw_big_text(text, y):
 
 
 def draw_text_centered(y, text, color):
-    sc(color)
-    ti_draw.draw_text(SCREEN_W // 2 - len(text) * CHAR_W // 2, y, text)
+    draw_keys(SCREEN_W // 2 - len(text) * CHAR_W // 2, y, text, color)
 
 
 def draw_brackets(i, color):
