@@ -184,22 +184,6 @@ Classic brick-breaker. Move the paddle left and right to bounce the ball and cle
 
 **Source:** the full program is in `Breakout/raw files/BREAKOUT.py`, which also runs on its own as a regular `.py`. The brick sprites are built into it in PNG2Sprite's bytes format; the PNGs in `Breakout/raw files/images/` are the source images.
 
----
 
-### T-Rex Runner
-
-> `T-Rex Runner/TREXRUN.py`
-
-My take on the famous Chrome Dinosaur Game. Jump over cacti and duck under pterodactyls as the game speeds up.
-
-![T-Rex Runner screenshot](Screenshots/trex.png)
-
-**Controls**
-- `[up]`: jump (or start / play again)
-- `[down]`: duck, or fall faster in the air
-- `[2nd]`: pause
-- `[clear]`: quit
-
-**Installation:** send `TREXRUN.py` and every `.8xv2` file in `T-Rex Runner/images/` to the calculator. The sprites were made with PNG2Sprite's `--8xv2` mode.
 
 

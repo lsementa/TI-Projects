@@ -7,7 +7,7 @@ MAX_HEIGHT = 4000
 COLORS = 1          # fewer colors = far fewer rectangles = faster drawing
 REMOVE_HALO = True  # drop near-white anti-alias fringe touching the outside
 HALO_LEVEL = 200    # a pixel is "near-white" if R, G and B are all >= this
-SCALE = 100         # percent to resize every input image by (50 = half size)
+SCALE = 25          # percent to resize every input image by (50 = half size)
                     # override from the command line: python png_to_sprite.py 50
 SMOOTH_SCALE = False # False = nearest neighbor (crisp pixel art, fewer colors)
                       # True  = smooth/averaged (better for photos, more rects)
@@ -25,16 +25,21 @@ FILL_HOLES = False    # fill transparent holes inside the shape (turns an
                       # outline into a solid silhouette). command line: --fill
 
 # Output type
-MAKE_8XV2 = False     # False = one sprites.py with every palette and sprite
+MAKE_8XV2 = True      # False = one sprites.py with every palette and sprite
                       # True  = a NAME.8xv2 calculator image per PNG, drawn with
                       #         ti_graphics.drawImage("NAME", x, y). File names
                       #         must be 8 characters max. command line: --8xv2
-OPAQUE = False        # .8xv2 only. False = transparent background
+OPAQUE = True        # .8xv2 only. False = transparent background
                       # True  = background filled with OPAQUE_BG, so a moving
                       #         sprite redrawn over itself covers its old frame
                       #         (no erase needed, no flicker on a plain
                       #         background). command line: --opaque
 OPAQUE_BG = 0xFFFFFF  # background color used by OPAQUE
+TRIM = True          # True = crop each image to its visible pixels after
+                      #         scaling (no empty margin rows/columns), so an
+                      #         opaque sprite's box is exactly the sprite and
+                      #         its bottom row can sit right on a ground line.
+                      #         command line: --trim
 BYTES = True          # sprites.py only. False = each rectangle packed into an
                       #         int (lists of ints, as before)
                       # True  = each color's rectangles as one bytes literal,
@@ -44,6 +49,14 @@ BYTES = True          # sprites.py only. False = each rectangle packed into an
                       #         less RAM (one object per color instead of a
                       #         list of ints). Images must be 255 x 255 or
                       #         smaller. command line: --bytes
+
+# Preview images
+SAVE_PREVIEW = True   # True = also save output/PNG/NAME.png showing what each
+                      #         converted sprite looks like (rectangles as the
+                      #         calculator draws them). command line: --png
+PREVIEW_ZOOM = 1      # enlarge previews by this factor (nearest neighbor) so
+                      #         tiny sprites are easier to see. command line:
+                      #         --png-zoom 4
 
 
 def is_light(rgb):
@@ -372,6 +385,43 @@ def grid_to_image(width, height, palette, grid, background=0):
     return [background] + list(palette), pixels
 
 
+def _rgba(c):
+    return ((c >> 16) & 255, (c >> 8) & 255, c & 255, 255)
+
+
+def save_preview(path, img, zoom=1):
+    if zoom > 1:
+        img = img.resize((img.width * zoom, img.height * zoom), Image.NEAREST)
+    img.save(path)
+
+
+def render_sprites(width, height, palette, sprites):
+    """Draw {color: [color, int, ...]} rectangles in order, like draw_sprite."""
+    img = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    for color in sorted(sprites):
+        fill = _rgba(palette[color])
+        for v in sprites[color][1:]:
+            x, y = (v >> 25) - 1, ((v >> 17) & 255) - 1
+            w, h = (v >> 8) & 511, v & 255
+            img.paste(fill, (x, y, x + w, y + h))
+    return img
+
+
+def render_image(width, height, palette, pixels, transparent):
+    """Render an .8xv2 image (palette index 0 transparent if `transparent`).
+    Colors go through RGB565 like on the calculator."""
+    def from565(c):
+        v = rgb565(c)
+        r, g, b = (v >> 11) & 31, (v >> 5) & 63, v & 31
+        return ((r << 3) | (r >> 2), (g << 2) | (g >> 4), (b << 3) | (b >> 2), 255)
+    colors = [from565(c) for c in palette]
+    if transparent:
+        colors[0] = (0, 0, 0, 0)
+    img = Image.new("RGBA", (width, height))
+    img.putdata([colors[i] for i in pixels])
+    return img
+
+
 def load_grid(filename, scale=SCALE):
     """PNG -> (width, height, palette, grid) with grid {(x, y): color index}.
     Colors are reduced and ordered most-pixels-first."""
@@ -431,6 +481,18 @@ def load_grid(filename, scale=SCALE):
     palette, grid = merge_colors(palette, grid, COLORS)
 
     palette, grid = order_colors(palette, grid)
+
+    if TRIM:
+        x0 = min(x for x, y in grid)
+        y0 = min(y for x, y in grid)
+        x1 = max(x for x, y in grid) + 1
+        y1 = max(y for x, y in grid) + 1
+        if (x0, y0, x1, y1) != (0, 0, width, height):
+            print(f"  Trimmed to {x1 - x0} x {y1 - y0} "
+                  f"(cut {x0} left, {y0} top, {width - x1} right, "
+                  f"{height - y1} bottom)")
+        grid = {(x - x0, y - y0): c for (x, y), c in grid.items()}
+        width, height = x1 - x0, y1 - y0
     return width, height, palette, grid
 
 
@@ -455,7 +517,8 @@ if __name__ == "__main__":
     input_dir = os.path.join(script_dir, "input")
     output_dir = os.path.join(script_dir, "output")
 
-    # Flags: --max-rects N, --fill, --8xv2. Everything else is [scale] [files...]
+    # Flags: --max-rects N, --fill, --8xv2, --opaque, --trim, --bytes, --png,
+    # --png-zoom N. Everything else is [scale] [files...]
     IM8C = MAKE_8XV2
     COMBINED_NAME = "sprites.py"   # all palettes and sprites go in this one file
     args = []
@@ -469,10 +532,21 @@ if __name__ == "__main__":
             MAX_RECTS = int(argv[i + 1])
             i += 2
             continue
-        if a == "--fill":
+        if a == "--png-zoom":
+            if i + 1 >= len(argv) or not argv[i + 1].isdigit() or int(argv[i + 1]) < 1:
+                sys.exit("--png-zoom needs a whole number, e.g. --png-zoom 4")
+            PREVIEW_ZOOM = int(argv[i + 1])
+            SAVE_PREVIEW = True
+            i += 2
+            continue
+        if a == "--png":
+            SAVE_PREVIEW = True
+        elif a == "--fill":
             FILL_HOLES = True
         elif a == "--opaque":
             OPAQUE = True
+        elif a == "--trim":
+            TRIM = True
         elif a == "--bytes":
             BYTES = True
         elif a in ("--8xv2", "--im8c"):
@@ -493,6 +567,9 @@ if __name__ == "__main__":
 
     os.makedirs(input_dir, exist_ok=True)
     os.makedirs(output_dir, exist_ok=True)
+    preview_dir = os.path.join(output_dir, "PNG")
+    if SAVE_PREVIEW:
+        os.makedirs(preview_dir, exist_ok=True)
 
     png_files = [f for f in os.listdir(input_dir) if f.lower().endswith(".png")]
 
@@ -530,6 +607,10 @@ if __name__ == "__main__":
             with open(os.path.join(output_dir, name + ".8xv2"), "wb") as f:
                 f.write(im8c_file(name, w, h, pal, pixels,
                                   transparent=not OPAQUE))
+            if SAVE_PREVIEW:
+                save_preview(os.path.join(preview_dir, name + ".png"),
+                             render_image(w, h, pal, pixels, not OPAQUE),
+                             PREVIEW_ZOOM)
             print(f"Converted: {png_file} -> {name}.8xv2  ({w} x {h}"
                   + (", opaque)" if OPAQUE else ")"))
         print(f"Saved {len(png_files)} image(s) to {output_dir}")
@@ -547,6 +628,10 @@ if __name__ == "__main__":
             width, height, palette, sprites = convert_png(
                 os.path.join(input_dir, png_file), scale)
             rect_count = sum(len(v) - 1 for v in sprites.values())
+            if SAVE_PREVIEW:
+                save_preview(os.path.join(preview_dir, base + ".png"),
+                             render_sprites(width, height, palette, sprites),
+                             PREVIEW_ZOOM)
             if BYTES:
                 if width > 255 or height > 255:
                     sys.exit(f"{png_file} is {width} x {height}; --bytes "
@@ -566,3 +651,5 @@ if __name__ == "__main__":
         with open(output_path, "w") as f:
             f.writelines(lines)
         print(f"Saved {len(png_files)} image(s) to {output_path}")
+    if SAVE_PREVIEW and png_files:
+        print(f"Previews saved to {preview_dir}")
